@@ -1,6 +1,7 @@
 // /api/billing-create-checkout-session.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { setCors } from "../lib/cors";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
 import { getUserFromRequest } from "../lib/auth";
 
@@ -11,6 +12,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 const PRO_PRICE_ID = process.env.STRIPE_PRO_MONTHLY_PRICE_ID!;
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setCors(res);
+
   if (req.method !== "POST") {
     res.status(405).end();
     return;
@@ -57,6 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  try {
   const session = await stripe.checkout.sessions.create({
     mode: "subscription",
     customer: stripeCustomerId,
@@ -72,6 +76,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       user_id: user.id
     }
   });
+    res.status(200).json({ url: session.url });
+  } catch (err: any) {
+    console.error("Stripe checkout error:", err);
+    res.status(500).json({ error: err.message });
+  }
 
-  res.status(200).json({ url: session.url });
 }

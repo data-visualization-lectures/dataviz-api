@@ -1,6 +1,7 @@
 // /api/billing-create-portal-session.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
+import { setCors } from "../lib/cors";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
 import { getUserFromRequest } from "../lib/auth";
 
@@ -9,6 +10,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  setCors(res);
+
   if (req.method !== "POST") {
     res.status(405).end();
     return;
@@ -36,5 +39,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return_url: `${process.env.FRONTEND_BASE_URL}/account`
   });
 
-  res.status(200).json({ url: portalSession.url });
+  try {
+    // Stripe customer の取得（あなたの DB に保存済みならそこから取る）
+    const portal = await stripe.billingPortal.sessions.create({
+      customer: user.stripe_customer_id, // ここはあなたの実装に合わせて調整
+      return_url: "https://auth.dataviz.jp/account",
+    });
+    return res.status(200).json({ url: portalSession.url });
+  } catch (err: any) {
+    console.error("Stripe portal session error:", err);
+    return res.status(500).json({ error: err.message });
+  }
 }
