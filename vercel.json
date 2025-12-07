@@ -1,13 +1,13 @@
 {
   "functions": {
     "api/me.ts": {
-      "includeFiles": "api/_lib/**"
+      "includeFiles": "api/**"
     },
     "api/billing-create-checkout-session.ts": {
-      "includeFiles": "api/_lib/**"
+      "includeFiles": "api/**"
     },
     "api/billing-create-portal-session.ts": {
-      "includeFiles": "api/_lib/**"
+      "includeFiles": "api/**"
     }
   }
 }
