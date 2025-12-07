@@ -94,6 +94,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "subscriptions_select_failed" });
     }
 
+    // 既にアクティブな購読がある場合は Checkout へ進ませない
+    if (sub?.status === "active") {
+      return res.status(200).json({
+        error: "already_subscribed",
+        redirect_url: `${FRONTEND_BASE_URL}/account`
+      });
+    }
+
     let stripeCustomerId = sub?.stripe_customer_id as string | undefined;
 
     // まだ Stripe Customer がなければ作成
