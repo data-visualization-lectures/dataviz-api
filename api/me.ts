@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../lib/supabaseAdmin";
-import { setCors } from "../lib/cors";
-import { getUserFromRequest } from "../lib/auth";
+import { supabaseAdmin } from "./_lib/supabaseAdmin";
+import { setCors } from "./_lib/cors";
+import { getUserFromRequest } from "./_lib/auth";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
 

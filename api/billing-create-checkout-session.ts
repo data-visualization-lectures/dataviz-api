@@ -1,9 +1,9 @@
 // /api/billing-create-checkout-session.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { setCors } from "../lib/cors";
-import { supabaseAdmin } from "../lib/supabaseAdmin";
-import { getUserFromRequest } from "../lib/auth";
+import { setCors } from "./_lib/cors";
+import { supabaseAdmin } from "./_lib/supabaseAdmin";
+import { getUserFromRequest } from "./_lib/auth";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-06-20" as any

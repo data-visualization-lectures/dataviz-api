@@ -1,7 +1,7 @@
 // /api/stripe-webhook.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { supabaseAdmin } from "../lib/supabaseAdmin";
+import { supabaseAdmin } from "./_lib/supabaseAdmin";
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: "2024-06-20" as any

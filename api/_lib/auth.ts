@@ -1,6 +1,6 @@
 // lib/auth.ts
 import type { VercelRequest } from "@vercel/node";
-import { supabaseAdmin } from "./supabaseAdmin";
+import { supabaseAdmin } from "./supabaseAdmin.js";
 
 export type AuthenticatedUser = {
   id: string;
