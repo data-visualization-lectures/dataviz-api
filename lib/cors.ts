@@ -1,4 +1,3 @@
-// lib/cors.ts
 import type { VercelResponse } from "@vercel/node";
 
 export function setCors(res: VercelResponse) {

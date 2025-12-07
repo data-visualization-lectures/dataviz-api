@@ -1,4 +1,3 @@
-// /api/me.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { supabaseAdmin } from "../lib/supabaseAdmin";
 import { setCors } from "../lib/cors";
