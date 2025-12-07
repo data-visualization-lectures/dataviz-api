@@ -1,25 +1,13 @@
 {
   "functions": {
     "api/me.ts": {
-      "includeFiles": [
-        "api/_lib/supabaseAdmin.ts",
-        "api/_lib/auth.ts",
-        "api/_lib/cors.ts"
-      ]
+      "includeFiles": "api/_lib/**"
     },
     "api/billing-create-checkout-session.ts": {
-      "includeFiles": [
-        "api/_lib/supabaseAdmin.ts",
-        "api/_lib/auth.ts",
-        "api/_lib/cors.ts"
-      ]
+      "includeFiles": "api/_lib/**"
     },
     "api/billing-create-portal-session.ts": {
-      "includeFiles": [
-        "api/_lib/supabaseAdmin.ts",
-        "api/_lib/auth.ts",
-        "api/_lib/cors.ts"
-      ]
+      "includeFiles": "api/_lib/**"
     }
   }
 }
