@@ -1,8 +1,8 @@
+// /api/stripe-webhook.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 
-// ================== 型定義 ==================
 type SubRow = {
   id?: string;
   user_id: string;
@@ -12,7 +12,21 @@ type SubRow = {
   current_period_end: string | null;
 };
 
-// ================== ハンドラ本体 ==================
+// ---- raw body を読むヘルパー ----
+async function readRawBody(req: VercelRequest): Promise<Buffer> {
+  const chunks: Uint8Array[] = [];
+
+  for await (const chunk of req) {
+    if (typeof chunk === "string") {
+      chunks.push(Buffer.from(chunk));
+    } else {
+      chunks.push(chunk);
+    }
+  }
+
+  return Buffer.concat(chunks);
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") {
     return res.status(405).end();
@@ -46,18 +60,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(400).send("Missing stripe-signature");
   }
 
-  // Vercel 環境では body が string / Buffer / object のどれかになる場合があるので、一旦 string 化
-  let rawBody: string;
-  if (typeof req.body === "string") {
-    rawBody = req.body;
-  } else if (Buffer.isBuffer(req.body)) {
-    rawBody = req.body.toString("utf8");
-  } else {
-    rawBody = JSON.stringify(req.body ?? {});
-  }
-
   let event: Stripe.Event;
+
   try {
+    const rawBody = await readRawBody(req); // ★ ここで生の body を取得
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
   } catch (err: any) {
     console.error("Webhook signature verification failed:", err?.message);
@@ -66,11 +72,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     switch (event.type) {
-      /**
-       * 1. checkout.session.completed
-       *   - Checkout セッションが完了したタイミング
-       *   - metadata.user_id / customer / subscription を元に subscriptions 行を upsert
-       */
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
 
@@ -79,20 +80,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const subscriptionId = (session.subscription as string | null) ?? null;
 
         if (!userId || !customerId) {
-          console.warn("checkout.session.completed: missing userId or customerId", {
-            userId,
-            customerId,
-          });
-          break; // 200 で返して Stripe 側には OK を返す（リトライループを避ける）
+          console.warn(
+            "checkout.session.completed: missing userId or customerId",
+            { userId, customerId }
+          );
+          break; // Stripe には 200 を返してリトライループを防ぐ
         }
 
-        // ここでは「サブスクの存在フラグ」を Supabase に書く。status 等は後続の
-        // customer.subscription.* イベントでより正確に更新する。
         const upsert: SubRow = {
           user_id: userId,
           stripe_customer_id: customerId,
           stripe_subscription_id: subscriptionId,
-          status: "active", // 仮。後続イベントで上書きされる前提
+          status: "active", // 仮のフラグ。必要に応じて後続の subscription イベントで上書き
           current_period_end: null,
         };
 
@@ -103,65 +102,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (error) {
           console.error("checkout.session.completed upsert error:", error);
         }
-        break;
-      }
 
-      /**
-       * 2. customer.subscription.created / updated / deleted
-       *    - Stripe サブスクリプションのライフサイクル変化
-       *    - status, current_period_end などを Supabase 側に反映する
-       */
-      case "customer.subscription.created":
-      case "customer.subscription.updated":
-      case "customer.subscription.deleted": {
-        const sub = event.data.object as Stripe.Subscription;
-
-        const customerId = sub.customer as string;
-        const stripeSubId = sub.id;
-        const status = sub.status; // 'active' | 'canceled' | 'past_due' など
-        const currentPeriodEnd = sub.current_period_end
-          ? new Date(sub.current_period_end * 1000).toISOString()
-          : null;
-
-        // まず stripe_customer_id から該当ユーザーの subscriptions 行を探す
-        const { data: existing, error: selectError } = await supabaseAdmin
-          .from("subscriptions")
-          .select("*")
-          .eq("stripe_customer_id", customerId)
-          .maybeSingle();
-
-        if (selectError) {
-          console.error("subscription select error:", selectError);
-          break;
-        }
-        if (!existing) {
-          console.warn(
-            "subscription event but subscriptions row not found for customer",
-            customerId
-          );
-          break;
-        }
-
-        const upsert: SubRow = {
-          user_id: existing.user_id,
-          stripe_customer_id: customerId,
-          stripe_subscription_id: stripeSubId,
-          status,
-          current_period_end: currentPeriodEnd,
-        };
-
-        const { error: upsertError } = await supabaseAdmin
-          .from("subscriptions")
-          .upsert(upsert, { onConflict: "user_id" });
-
-        if (upsertError) {
-          console.error("subscription upsert error:", upsertError);
-        }
         break;
       }
 
       default: {
-        // 他のイベントはログだけ残して無視
         console.log("Unhandled Stripe event type:", event.type);
       }
     }
