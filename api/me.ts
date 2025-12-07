@@ -2,16 +2,7 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
-
-// ================== CORS ==================
-function setCors(res: VercelResponse) {
-  res.setHeader("Access-Control-Allow-Origin", "https://auth.dataviz.jp");
-  res.setHeader("Access-Control-Allow-Methods", "GET,POST,OPTIONS");
-  res.setHeader(
-    "Access-Control-Allow-Headers",
-    "Content-Type,Authorization"
-  );
-}
+import { setCors } from "./_lib/cors.js";
 
 // ================== Supabase 管理クライアント ==================
 const supabaseUrl = process.env.SUPABASE_URL!;
