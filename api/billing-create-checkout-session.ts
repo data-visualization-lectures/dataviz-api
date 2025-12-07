@@ -1,50 +1,8 @@
 // /api/billing-create-checkout-session.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
-import { createClient } from "@supabase/supabase-js";
 import { setCors } from "./_lib/cors.js";
-
-// ================== Supabase 管理クライアント ==================
-const supabaseUrl = process.env.SUPABASE_URL!;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false
-  }
-});
-
-// ================== 認証ヘルパ ==================
-type AuthenticatedUser = {
-  id: string;
-  email: string;
-};
-
-async function getUserFromRequest(
-  req: VercelRequest
-): Promise<AuthenticatedUser | null> {
-  const header =
-    (req.headers["authorization"] as string | undefined) ??
-    (req.headers["Authorization"] as string | undefined);
-
-  if (!header || !header.toLowerCase().startsWith("bearer ")) {
-    return null;
-  }
-
-  const token = header.slice("bearer ".length);
-
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
-  if (error || !data.user) {
-    console.error("getUserFromRequest error", error);
-    return null;
-  }
-
-  return {
-    id: data.user.id,
-    email: data.user.email ?? ""
-  };
-}
+import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 
 // ================== Stripe クライアント ==================
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
