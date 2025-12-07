@@ -8,6 +8,9 @@
     },
     "api/billing-create-portal-session.ts": {
       "includeFiles": "api/**"
+    },
+    "api/stripe-webhook.ts": {
+      "includeFiles": "api/**"
     }
   }
 }
