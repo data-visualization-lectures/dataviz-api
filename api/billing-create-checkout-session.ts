@@ -1,13 +1,11 @@
 // /api/billing-create-checkout-session.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import Stripe from "stripe";
 import { setCors } from "./_lib/cors.js";
+import { createStripeClient } from "./_lib/stripe.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 
 // ================== Stripe クライアント ==================
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
-  apiVersion: "2024-06-20" as any
-});
+const stripe = createStripeClient();
 
 const PRO_PRICE_ID = process.env.STRIPE_PRO_MONTHLY_PRICE_ID!;
 const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL ?? "https://auth.dataviz.jp";
