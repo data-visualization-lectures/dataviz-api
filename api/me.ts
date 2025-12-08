@@ -7,7 +7,7 @@ import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS は一番最初に
-  setCors(res);
+  setCors(req, res);
 
   // Preflight (OPTIONS)
   if (req.method === "OPTIONS") {
