@@ -143,6 +143,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     subscriptionId?: string | null;
     status?: SubscriptionStatus;
     currentPeriodEnd?: string | null;
+    cancelAtPeriodEnd?: boolean | null;
     planId?: string | undefined;
   }) => {
     const payload: Record<string, any> = {
@@ -160,6 +161,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     if (params.currentPeriodEnd !== undefined) {
       payload.current_period_end = params.currentPeriodEnd;
+    }
+    if (params.cancelAtPeriodEnd !== undefined) {
+      payload.cancel_at_period_end = params.cancelAtPeriodEnd;
     }
     if (params.planId !== undefined) {
       payload.plan_id = params.planId ?? "pro_monthly";
@@ -193,6 +197,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         let status: SubscriptionStatus = "active";
         let currentPeriodEnd: string | null = null;
+        let cancelAtPeriodEnd: boolean | null = false;
         let planId: string | undefined = undefined;
 
         if (subscriptionId) {
@@ -202,6 +207,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             );
             status = mapStripeStatus(subscription.status);
             currentPeriodEnd = toIso(subscription.current_period_end);
+            cancelAtPeriodEnd = subscription.cancel_at_period_end;
             const priceId =
               subscription.items.data[0]?.price?.id ??
               (session?.line_items as any)?.data?.[0]?.price?.id;
@@ -218,6 +224,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             subscriptionId,
             status,
             currentPeriodEnd,
+            cancelAtPeriodEnd,
             planId,
           });
         } catch (error) {
@@ -239,6 +246,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const status = mapStripeStatus(subscription.status);
         const currentPeriodEnd = toIso(subscription.current_period_end);
+        const cancelAtPeriodEnd = subscription.cancel_at_period_end;
         const priceId = subscription.items.data[0]?.price?.id;
         const planId = await resolvePlanId(priceId);
 
@@ -249,6 +257,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             subscriptionId: subscription.id,
             status,
             currentPeriodEnd,
+            cancelAtPeriodEnd,
             planId,
           });
         } catch (error) {
@@ -270,6 +279,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         const status = mapStripeStatus(subscription.status ?? "canceled");
         const currentPeriodEnd = toIso(subscription.current_period_end);
+        const cancelAtPeriodEnd = subscription.cancel_at_period_end;
         const priceId = subscription.items.data[0]?.price?.id;
         const planId = await resolvePlanId(priceId);
 
@@ -280,6 +290,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             subscriptionId: subscription.id,
             status,
             currentPeriodEnd,
+            cancelAtPeriodEnd,
             planId,
           });
         } catch (error) {
@@ -317,6 +328,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const currentPeriodEnd = subscription
           ? toIso(subscription.current_period_end)
           : null;
+        const cancelAtPeriodEnd = subscription?.cancel_at_period_end ?? false;
+
         const priceId =
           invoice.lines.data[0]?.price?.id ??
           subscription?.items.data[0]?.price?.id;
@@ -329,6 +342,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             subscriptionId,
             status,
             currentPeriodEnd,
+            cancelAtPeriodEnd,
             planId,
           });
         } catch (error) {
@@ -367,6 +381,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const currentPeriodEnd = subscription
           ? toIso(subscription.current_period_end)
           : null;
+        const cancelAtPeriodEnd = subscription?.cancel_at_period_end ?? false;
+
         const priceId =
           invoice.lines.data[0]?.price?.id ??
           subscription?.items.data[0]?.price?.id;
@@ -379,6 +395,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             subscriptionId,
             status,
             currentPeriodEnd,
+            cancelAtPeriodEnd,
             planId,
           });
         } catch (error) {
