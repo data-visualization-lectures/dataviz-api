@@ -3,6 +3,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { setCors } from "./_lib/cors.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
+import { isAcademiaEmail } from "./_lib/academia.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -24,11 +25,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: "not_authenticated" });
     }
 
-    const { data: subscription, error: subError } = await supabaseAdmin
+    let { data: subscription, error: subError } = await supabaseAdmin
       .from("subscriptions")
       .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
+
+    // アカデミア会員（無料付与）判定
+    // DBに有効なサブスクリプションがない、かつ大学ドメインの場合に付与
+    if (
+      (!subscription || subscription.status !== "active") &&
+      user.email &&
+      isAcademiaEmail(user.email)
+    ) {
+      if (!subscription) {
+        // 全くレコードがない場合はオブジェクトを捏造
+        subscription = {
+          user_id: user.id,
+          status: "active",
+          plan_id: "academia",
+          current_period_end: null,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        };
+      } else {
+        // レコードはあるが active ではない場合 (canceled/past_due 等)
+        // academia 権限で上書きして active に見せる
+        subscription.status = "active";
+        subscription.plan_id = "academia";
+        subscription.current_period_end = null;
+      }
+    }
 
     if (subError) {
       console.error("subscriptions error", subError);
