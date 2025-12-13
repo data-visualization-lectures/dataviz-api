@@ -203,7 +203,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         let status: SubscriptionStatus = "active";
-        let currentPeriodEnd: string | null = null;
+        let currentPeriodEnd: string | null | undefined = undefined;
         let cancelAtPeriodEnd: boolean | null = false;
         let planId: string | undefined = undefined;
 
@@ -335,7 +335,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           subscription ? mapStripeStatus(subscription.status) : "active";
         const currentPeriodEnd = subscription
           ? toIso(subscription.current_period_end)
-          : null;
+          : undefined; // 取得できなかった場合は undefined にして更新しない (nullで上書きしない)
         const cancelAtPeriodEnd = subscription?.cancel_at_period_end ?? false;
 
         const priceId =
@@ -388,7 +388,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           : "past_due";
         const currentPeriodEnd = subscription
           ? toIso(subscription.current_period_end)
-          : null;
+          : undefined; // 取得できなかった場合は undefined にして更新しない (nullで上書きしない)
         const cancelAtPeriodEnd = subscription?.cancel_at_period_end ?? false;
 
         const priceId =
