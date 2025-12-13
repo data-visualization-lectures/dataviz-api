@@ -27,6 +27,8 @@ async function readRawBody(req: VercelRequest): Promise<Buffer> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
+  console.log("[Webhook] Handler invoked. Method:", req.method);
+
   if (req.method !== "POST") {
     return res.status(405).end();
   }
@@ -56,6 +58,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   const sig = req.headers["stripe-signature"];
   if (!sig || Array.isArray(sig)) {
+    console.error("[Webhook] Missing stripe-signature");
     return res.status(400).send("Missing stripe-signature");
   }
 
@@ -64,6 +67,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
     const rawBody = await readRawBody(req); // ★ ここで生の body を取得
     event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    console.log("[Webhook] Event verified. Type:", event.type);
   } catch (err: any) {
     console.error("Webhook signature verification failed:", err?.message);
     return res.status(400).send(`Webhook Error: ${err?.message}`);
