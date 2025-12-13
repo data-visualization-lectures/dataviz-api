@@ -174,7 +174,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .upsert(payload, { onConflict: "user_id" });
 
     if (error) {
+      console.error("upsertSubscription failed:", error, "payload:", payload);
       throw error;
+    } else {
+      console.log("upsertSubscription succeeded. Payload:", JSON.stringify(payload));
     }
   };
 
@@ -247,6 +250,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const status = mapStripeStatus(subscription.status);
         const currentPeriodEnd = toIso(subscription.current_period_end);
         const cancelAtPeriodEnd = subscription.cancel_at_period_end;
+        console.log(`[Webhook] subscription.updated: subId=${subscription.id}, status=${status}, cancelAtPeriodEnd=${cancelAtPeriodEnd}`);
         const priceId = subscription.items.data[0]?.price?.id;
         const planId = await resolvePlanId(priceId);
 
