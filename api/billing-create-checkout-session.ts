@@ -101,6 +101,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ],
       success_url: `${FRONTEND_BASE_URL}/billing/success`,
       cancel_url: `${FRONTEND_BASE_URL}/billing/cancel`,
+      subscription_data: {
+        metadata: {
+          user_id: user.id
+        }
+      },
       metadata: {
         user_id: user.id
       }
