@@ -49,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // POST: プロジェクト新規保存
         if (req.method === "POST") {
-            const { name, app_name, data } = req.body;
+            const { name, app_name, data, thumbnail } = req.body;
 
             if (!name || !app_name || !data) {
                 return res.status(400).json({ error: "missing_required_fields" });
@@ -80,6 +80,37 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 throw storageError;
             }
 
+            // 画像保存処理
+            let thumbnailPath: string | null = null;
+            if (thumbnail) {
+                try {
+                    // "data:image/png;base64,..." 形式を想定して除去
+                    const base64Data = thumbnail.replace(/^data:image\/\w+;base64,/, "");
+                    const imageBuffer = Buffer.from(base64Data, "base64");
+                    const imagePath = `${user.id}/${projectUuid}.png`;
+
+                    const { error: imageUploadError } = await supabaseAdmin.storage
+                        .from("user_projects")
+                        .upload(imagePath, imageBuffer, {
+                            contentType: "image/png",
+                            upsert: false,
+                        });
+
+                    if (imageUploadError) {
+                        console.error("thumbnail upload error", imageUploadError);
+                        // 画像アップロード失敗は致命的エラーにせず、ログに残して続行するか、
+                        // もしくはエラーとして返すか。ここでは一旦続行し、DBにはnullを入れる方針も考えられるが、
+                        // クライアント側でエラーハンドリングできるようにthrowするのが無難か。
+                        // ただし、既にJSONはアップロードされているため、ロールバックが必要になる。
+                        // 簡略化のため、ログのみ出力し thumbnailPath は null のまま進める。
+                    } else {
+                        thumbnailPath = imagePath;
+                    }
+                } catch (e) {
+                    console.error("thumbnail processing error", e);
+                }
+            }
+
             // 2. DB へ保存
             const { data: project, error: dbError } = await supabaseAdmin
                 .from("projects")
@@ -88,6 +119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     user_id: user.id,
                     name,
                     storage_path: storagePath,
+                    thumbnail_path: thumbnailPath,
                     app_name,
                 })
                 .select()
