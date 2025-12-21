@@ -1,6 +1,7 @@
 // api/projects/[id].ts
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { Buffer } from "node:buffer";
 import { setCors } from "../_lib/cors.js";
 import { getUserFromRequest, supabaseAdmin } from "../_lib/supabase.js";
 import { checkSubscription } from "../_lib/subscription.js";
