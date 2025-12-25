@@ -35,7 +35,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             const { data: projects, error } = await supabaseAdmin
                 .from("projects")
-                .select("id, name, app_name, created_at, updated_at")
+                .select("id, name, app_name, thumbnail_path, created_at, updated_at")
                 .eq("user_id", user.id)
                 .eq("app_name", appName)
                 .order("updated_at", { ascending: false });
