@@ -5,6 +5,7 @@ import { Buffer } from "node:buffer";
 import { setCors } from "./_lib/cors.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { checkSubscription } from "./_lib/subscription.js";
+import { logger } from "./_lib/logger.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -17,12 +18,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const user = await getUserFromRequest(req);
         if (!user) {
+            logger.warn("Unauthenticated request to projects API");
             return res.status(401).json({ error: "not_authenticated" });
         }
 
         // サブスクリプションチェック
         const hasSubscription = await checkSubscription(user);
         if (!hasSubscription) {
+            logger.info("Subscription required for project access", { userId: user.id });
             return res.status(403).json({ error: "subscription_required" });
         }
 
@@ -41,7 +44,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 .order("updated_at", { ascending: false });
 
             if (error) {
-                console.error("projects fetch error", error);
+                logger.error("Failed to fetch projects", error, { userId: user.id, appName });
                 throw error;
             }
 
@@ -56,13 +59,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(400).json({ error: "missing_required_fields" });
             }
 
-            // JSONデータの検証などをここで行うことも可能
-
-            // 1. Storage へアップロード
-            // ファイルパス: {user_id}/{uuid}.json
-            // UUIDはここで生成する必要があるため、Supabase DBのgen_random_uuid()に頼らず、
-            // Storageパスのためにcrypto.randomUUID()等を使うか、あるいはプロジェクトIDを先に確定させる必要がある。
-            // ここではプロジェクトIDの発行をDBに任せる前に、パス用のユニークIDを生成する。
             const crypto = await import("crypto");
             const projectUuid = crypto.randomUUID();
             const storagePath = `${user.id}/${projectUuid}.json`;
@@ -77,7 +73,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 });
 
             if (storageError) {
-                console.error("storage upload error", storageError);
+                logger.error("Project storage upload failed", storageError, { userId: user.id, storagePath });
                 throw storageError;
             }
 
@@ -85,7 +81,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             let thumbnailPath: string | null = null;
             if (thumbnail) {
                 try {
-                    // "data:image/png;base64,..." 形式を想定して除去
                     const base64Data = thumbnail.replace(/^data:image\/\w+;base64,/, "");
                     const imageBuffer = Buffer.from(base64Data, "base64");
                     const imagePath = `${user.id}/${projectUuid}.png`;
@@ -98,17 +93,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                         });
 
                     if (imageUploadError) {
-                        console.error("thumbnail upload error", imageUploadError);
-                        // 画像アップロード失敗は致命的エラーにせず、ログに残して続行するか、
-                        // もしくはエラーとして返すか。ここでは一旦続行し、DBにはnullを入れる方針も考えられるが、
-                        // クライアント側でエラーハンドリングできるようにthrowするのが無難か。
-                        // ただし、既にJSONはアップロードされているため、ロールバックが必要になる。
-                        // 簡略化のため、ログのみ出力し thumbnailPath は null のまま進める。
+                        logger.warn("Thumbnail upload failed", { error: imageUploadError, userId: user.id });
                     } else {
                         thumbnailPath = imagePath;
                     }
                 } catch (e) {
-                    console.error("thumbnail processing error", e);
+                    logger.error("Thumbnail processing error", e as Error, { userId: user.id });
                 }
             }
 
@@ -116,7 +106,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const { data: project, error: dbError } = await supabaseAdmin
                 .from("projects")
                 .insert({
-                    id: projectUuid, // Storageと同じIDを使うと管理しやすい
+                    id: projectUuid,
                     user_id: user.id,
                     name,
                     storage_path: storagePath,
@@ -127,19 +117,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 .single();
 
             if (dbError) {
-                // DB保存に失敗したらStorageのごみ掃除をしたほうが丁寧だが、ここでは省略
-                console.error("projects insert error", dbError);
+                logger.error("Project DB insertion failed", dbError, { userId: user.id, projectUuid });
                 throw dbError;
             }
 
+            logger.info("Project created successfully", { userId: user.id, projectUuid });
             return res.status(200).json({ project });
         }
 
         return res.status(405).json({ error: "Method not allowed" });
     } catch (err: any) {
-        console.error("projects handler error", err);
+        logger.error("Projects handler error", err as Error);
         return res
             .status(500)
             .json({ error: "internal_error", detail: err?.message ?? String(err) });
     }
 }
+
