@@ -1,16 +1,13 @@
 {
   "functions": {
-    "api/me.ts": {
-      "includeFiles": "api/**"
-    },
-    "api/billing-create-checkout-session.ts": {
-      "includeFiles": "api/**"
-    },
-    "api/billing-create-portal-session.ts": {
-      "includeFiles": "api/**"
-    },
-    "api/stripe-webhook.ts": {
+    "api/**/*.ts": {
       "includeFiles": "api/**"
     }
-  }
+  },
+  "rewrites": [
+    {
+      "source": "/api/(.*)",
+      "destination": "/api/$1"
+    }
+  ]
 }
