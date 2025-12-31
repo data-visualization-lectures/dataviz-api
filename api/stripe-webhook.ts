@@ -2,14 +2,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
-
-type SubscriptionStatus =
-  | "none"
-  | "active"
-  | "past_due"
-  | "canceled"
-  | "incomplete"
-  | "trialing";
+import type { SubscriptionStatus } from "./_lib/types.js";
 
 // ---- raw body を読むヘルパー ----
 async function readRawBody(req: VercelRequest): Promise<Buffer> {

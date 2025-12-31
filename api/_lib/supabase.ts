@@ -1,10 +1,9 @@
 import type { VercelRequest } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
+import type { AuthenticatedUser } from "./types.js";
 
-export type AuthenticatedUser = {
-  id: string;
-  email: string;
-};
+// 既存のインポートパスを維持するため再エクスポート
+export type { AuthenticatedUser };
 
 const supabaseUrl = process.env.SUPABASE_URL!;
 const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
