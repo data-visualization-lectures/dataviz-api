@@ -4,6 +4,7 @@ import { setCors } from "./_lib/cors.js";
 import { createStripeClient } from "./_lib/stripe.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { config } from "./_lib/config.js";
+import { logger } from "./_lib/logger.js";
 
 // ================== Stripe クライアント ==================
 const stripe = createStripeClient();
@@ -35,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .maybeSingle();
 
     if (subError) {
-      console.error("subscriptions select error", subError);
+      logger.error("subscriptions select error", subError);
       return res.status(500).json({ error: "subscriptions_select_failed" });
     }
 
@@ -71,7 +72,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           });
 
         if (insertError) {
-          console.error("subscriptions insert error", insertError);
+          logger.error("subscriptions insert error", insertError);
           return res.status(500).json({ error: "subscriptions_insert_failed" });
         }
       } else {
@@ -81,7 +82,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           .eq("user_id", user.id);
 
         if (updateError) {
-          console.error("subscriptions update error", updateError);
+          logger.error("subscriptions update error", updateError);
           return res.status(500).json({ error: "subscriptions_update_failed" });
         }
       }
@@ -111,7 +112,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
-    console.error("Stripe checkout error:", err);
+    logger.error("Stripe checkout error:", err);
     return res.status(500).json({ error: err.message ?? "unknown_error" });
   }
 }

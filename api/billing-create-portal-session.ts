@@ -4,6 +4,7 @@ import { setCors } from "./_lib/cors.js";
 import { createStripeClient } from "./_lib/stripe.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { config } from "./_lib/config.js";
+import { logger } from "./_lib/logger.js";
 
 // ================== Stripe クライアント ==================
 const stripe = createStripeClient();
@@ -35,7 +36,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .maybeSingle();
 
     if (subError) {
-      console.error("subscriptions select error", subError);
+      logger.error("subscriptions select error", subError);
       return res.status(500).json({ error: "subscriptions_select_failed" });
     }
 
@@ -53,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     return res.status(200).json({ url: portalSession.url });
   } catch (err: any) {
-    console.error("Stripe portal session error:", err);
+    logger.error("Stripe portal session error:", err);
     return res.status(500).json({ error: err.message ?? "unknown_error" });
   }
 }

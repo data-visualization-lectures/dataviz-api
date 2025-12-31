@@ -3,6 +3,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { config } from "./_lib/config.js";
+import { logger } from "./_lib/logger.js";
 import {
   handleCheckoutCompleted,
   handleSubscriptionUpdated,
@@ -27,7 +28,7 @@ async function readRawBody(req: VercelRequest): Promise<Buffer> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  console.log("[Webhook] Handler invoked. Method:", req.method);
+  logger.info("[Webhook] Handler invoked. Method:", req.method);
 
   if (req.method !== "POST") {
     return res.status(405).end();
@@ -82,12 +83,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         break;
 
       default:
-        console.log("Unhandled Stripe event type:", event.type);
+        logger.info("Unhandled Stripe event type", { eventType: event.type });
     }
 
     return res.status(200).send("ok");
   } catch (err: any) {
-    console.error("stripe-webhook handler error:", err);
+    logger.error("stripe-webhook handler error:", err);
     return res.status(500).send("internal_webhook_error");
   }
 }

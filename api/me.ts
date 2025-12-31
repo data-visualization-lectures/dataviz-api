@@ -4,6 +4,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { setCors } from "./_lib/cors.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { isAcademiaEmail } from "./_lib/academia.js";
+import { logger } from "./_lib/logger.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -58,7 +59,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     if (subError) {
-      console.error("subscriptions error", subError);
+      logger.error("subscriptions error", subError);
     }
 
     const { data: profile, error: profileError } = await supabaseAdmin
@@ -68,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .maybeSingle();
 
     if (profileError) {
-      console.error("profiles error", profileError);
+      logger.error("profiles error", profileError);
     }
 
     return res.status(200).json({
@@ -77,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       subscription,
     });
   } catch (err: any) {
-    console.error("me handler error", err);
+    logger.error("me handler error", err);
     return res
       .status(500)
       .json({ error: "internal_error", detail: err?.message ?? String(err) });

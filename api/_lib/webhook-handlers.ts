@@ -3,6 +3,7 @@
 
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
+import { logger } from "./logger.js";
 import {
     toIso,
     mapStripeStatus,
@@ -26,7 +27,7 @@ export async function handleCheckoutCompleted(
     const subscriptionId = (session.subscription as string | null) ?? null;
 
     if (!userId || !customerId) {
-        console.warn(
+        logger.warn(
             "checkout.session.completed: missing userId or customerId",
             { userId, customerId }
         );
@@ -49,7 +50,7 @@ export async function handleCheckoutCompleted(
                 (session?.line_items as any)?.data?.[0]?.price?.id;
             planId = await resolvePlanId(supabaseAdmin, priceId);
         } catch (err) {
-            console.error("checkout.session.completed: retrieve subscription failed", err);
+            logger.error("checkout.session.completed: retrieve subscription failed", err);
         }
     }
 
@@ -64,7 +65,7 @@ export async function handleCheckoutCompleted(
             planId,
         });
     } catch (error) {
-        console.error("checkout.session.completed upsert error:", error);
+        logger.error("checkout.session.completed upsert error:", error);
     }
 }
 
@@ -81,14 +82,14 @@ export async function handleSubscriptionUpdated(
     const userId = await getUserIdFromCustomer(stripe, customerId, subscription);
 
     if (!userId) {
-        console.warn("subscription.updated: missing userId", { customerId });
+        logger.warn("subscription.updated: missing userId", { customerId });
         return;
     }
 
     const status = mapStripeStatus(subscription.status);
     const currentPeriodEnd = toIso(subscription.current_period_end) ?? undefined;
     const cancelAtPeriodEnd = subscription.cancel_at_period_end;
-    console.log(
+    logger.info(
         `[Webhook] subscription.updated: subId=${subscription.id}, status=${status}, cancelAtPeriodEnd=${cancelAtPeriodEnd}`
     );
     const priceId = subscription.items.data[0]?.price?.id;
@@ -118,7 +119,7 @@ export async function handleSubscriptionDeleted(
     const userId = await getUserIdFromCustomer(stripe, customerId, subscription);
 
     if (!userId) {
-        console.warn("subscription.deleted: missing userId", { customerId });
+        logger.warn("subscription.deleted: missing userId", { customerId });
         return;
     }
 
@@ -156,13 +157,13 @@ export async function handleInvoicePaymentSucceeded(
         try {
             subscription = await stripe.subscriptions.retrieve(subscriptionId);
         } catch (err) {
-            console.error("invoice.payment_succeeded: retrieve subscription failed", err);
+            logger.error("invoice.payment_succeeded: retrieve subscription failed", err);
         }
     }
 
     const userId = await getUserIdFromCustomer(stripe, customerId, subscription);
     if (!userId) {
-        console.warn("invoice.payment_succeeded: missing userId", {
+        logger.warn("invoice.payment_succeeded: missing userId", {
             customerId,
             subscriptionId,
         });
@@ -208,13 +209,13 @@ export async function handleInvoicePaymentFailed(
         try {
             subscription = await stripe.subscriptions.retrieve(subscriptionId);
         } catch (err) {
-            console.error("invoice.payment_failed: retrieve subscription failed", err);
+            logger.error("invoice.payment_failed: retrieve subscription failed", err);
         }
     }
 
     const userId = await getUserIdFromCustomer(stripe, customerId, subscription);
     if (!userId) {
-        console.warn("invoice.payment_failed: missing userId", {
+        logger.warn("invoice.payment_failed: missing userId", {
             customerId,
             subscriptionId,
         });

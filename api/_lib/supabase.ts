@@ -2,6 +2,7 @@ import type { VercelRequest } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import type { AuthenticatedUser } from "./types.js";
 import { config } from "./config.js";
+import { logger } from "./logger.js";
 
 // 既存のインポートパスを維持するため再エクスポート
 export type { AuthenticatedUser };
@@ -32,7 +33,7 @@ export async function getUserFromRequest(
 
   const { data, error } = await supabaseAdmin.auth.getUser(token);
   if (error || !data.user) {
-    console.error("getUserFromRequest error", error);
+    logger.error("getUserFromRequest failed", error ?? undefined);
     return null;
   }
 

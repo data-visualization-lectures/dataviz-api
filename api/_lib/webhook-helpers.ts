@@ -4,6 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import type { SubscriptionStatus } from "./types.js";
+import { logger } from "./logger.js";
 
 /**
  * Unix エポック秒を ISO 8601 文字列に変換
@@ -54,7 +55,7 @@ export async function resolvePlanId(
         .maybeSingle();
 
     if (error) {
-        console.error("resolvePlanId error", error);
+        logger.error("resolvePlanId failed", error, { priceId });
         return undefined;
     }
 
@@ -84,12 +85,12 @@ export async function getUserIdFromCustomer(
 
         const userId = customer.metadata?.user_id;
         if (!userId) {
-            console.warn("customer metadata missing user_id", { customerId });
+            logger.warn("Customer metadata missing user_id", { customerId });
         }
 
         return userId ?? null;
     } catch (err) {
-        console.error("getUserIdFromCustomer error", err);
+        logger.error("getUserIdFromCustomer failed", err as Error, { customerId });
         return null;
     }
 }
@@ -137,9 +138,9 @@ export async function upsertSubscription(
         .upsert(payload, { onConflict: "user_id" });
 
     if (error) {
-        console.error("upsertSubscription failed:", error, "payload:", payload);
+        logger.error("upsertSubscription failed", error as Error, { payload });
         throw error;
     } else {
-        console.log("upsertSubscription succeeded. Payload:", JSON.stringify(payload));
+        logger.info("upsertSubscription succeeded", { payload });
     }
 }
