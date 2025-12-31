@@ -26,14 +26,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(401).json({ error: "not_authenticated" });
     }
 
-    let { data: subscription, error: subError } = await supabaseAdmin
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // データベースクエリを並列実行してパフォーマンスを向上
+    const [
+      { data: subscription, error: subError },
+      { data: profile, error: profileError }
+    ] = await Promise.all([
+      supabaseAdmin
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      supabaseAdmin
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .maybeSingle()
+    ]);
+
+    // エラーログ
+    if (subError) {
+      logger.error("subscriptions query failed", subError, { userId: user.id });
+    }
+    if (profileError) {
+      logger.error("profiles query failed", profileError, { userId: user.id });
+    }
 
     // アカデミア会員（無料付与）判定
     // DBに有効なサブスクリプションがない、かつ大学ドメインの場合に付与
+    let finalSubscription = subscription;
     if (
       (!subscription || subscription.status !== "active") &&
       user.email &&
@@ -41,7 +61,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     ) {
       if (!subscription) {
         // 全くレコードがない場合はオブジェクトを捏造
-        subscription = {
+        finalSubscription = {
           user_id: user.id,
           status: "active",
           plan_id: "academia",
@@ -52,30 +72,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       } else {
         // レコードはあるが active ではない場合 (canceled/past_due 等)
         // academia 権限で上書きして active に見せる
-        subscription.status = "active";
-        subscription.plan_id = "academia";
-        subscription.current_period_end = null;
+        finalSubscription = {
+          ...subscription,
+          status: "active",
+          plan_id: "academia",
+          current_period_end: null,
+        };
       }
-    }
-
-    if (subError) {
-      logger.error("subscriptions error", subError);
-    }
-
-    const { data: profile, error: profileError } = await supabaseAdmin
-      .from("profiles")
-      .select("*")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    if (profileError) {
-      logger.error("profiles error", profileError);
     }
 
     return res.status(200).json({
       user: { id: user.id, email: user.email },
       profile,
-      subscription,
+      subscription: finalSubscription,
     });
   } catch (err: any) {
     logger.error("me handler error", err);
