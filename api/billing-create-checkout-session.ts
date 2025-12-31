@@ -3,12 +3,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { setCors } from "./_lib/cors.js";
 import { createStripeClient } from "./_lib/stripe.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
+import { config } from "./_lib/config.js";
 
 // ================== Stripe クライアント ==================
 const stripe = createStripeClient();
-
-const PRO_PRICE_ID = process.env.STRIPE_PRO_MONTHLY_PRICE_ID!;
-const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL ?? "https://auth.dataviz.jp";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -45,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (sub?.status === "active") {
       return res.status(200).json({
         error: "already_subscribed",
-        redirect_url: `${FRONTEND_BASE_URL}/account`
+        redirect_url: `${config.frontend.baseUrl}/account`
       });
     }
 
@@ -95,12 +93,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       customer: stripeCustomerId,
       line_items: [
         {
-          price: PRO_PRICE_ID,
+          price: config.stripe.proMonthlyPriceId,
           quantity: 1
         }
       ],
-      success_url: `${FRONTEND_BASE_URL}/billing/success`,
-      cancel_url: `${FRONTEND_BASE_URL}/billing/cancel`,
+      success_url: `${config.frontend.baseUrl}/billing/success`,
+      cancel_url: `${config.frontend.baseUrl}/billing/cancel`,
       subscription_data: {
         metadata: {
           user_id: user.id

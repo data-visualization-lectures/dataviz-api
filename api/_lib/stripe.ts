@@ -1,9 +1,8 @@
 import Stripe from "stripe";
-
-const apiVersion = "2024-06-20" as const;
+import { config } from "./config.js";
 
 export function createStripeClient() {
-  return new Stripe(process.env.STRIPE_SECRET_KEY!, {
-    apiVersion: apiVersion as any
+  return new Stripe(config.stripe.secretKey, {
+    apiVersion: config.stripe.apiVersion as any,
   });
 }

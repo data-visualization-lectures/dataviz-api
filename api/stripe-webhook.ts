@@ -2,6 +2,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
+import { config } from "./_lib/config.js";
 import {
   handleCheckoutCompleted,
   handleSubscriptionUpdated,
@@ -32,28 +33,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).end();
   }
 
-  const supabaseUrl = process.env.SUPABASE_URL;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
-  const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
-
-  if (!supabaseUrl || !serviceRoleKey || !stripeSecretKey || !webhookSecret) {
-    console.error("Missing env for stripe-webhook", {
-      supabaseUrl: !!supabaseUrl,
-      serviceRoleKey: !!serviceRoleKey,
-      stripeSecretKey: !!stripeSecretKey,
-      webhookSecret: !!webhookSecret,
-    });
-    return res.status(500).send("missing_env");
-  }
-
-  const stripe = new Stripe(stripeSecretKey, {
-    apiVersion: "2024-06-20" as any,
+  const stripe = new Stripe(config.stripe.secretKey, {
+    apiVersion: config.stripe.apiVersion as any,
   });
 
-  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-    auth: { persistSession: false, autoRefreshToken: false },
-  });
+  const supabaseAdmin = createClient(
+    config.supabase.url,
+    config.supabase.serviceRoleKey,
+    {
+      auth: { persistSession: false, autoRefreshToken: false },
+    }
+  );
 
   const sig = req.headers["stripe-signature"];
   if (!sig || Array.isArray(sig)) {
@@ -64,7 +54,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     const rawBody = await readRawBody(req);
-    event = stripe.webhooks.constructEvent(rawBody, sig, webhookSecret);
+    event = stripe.webhooks.constructEvent(rawBody, sig, config.stripe.webhookSecret);
   } catch (err: any) {
     return res.status(400).send(`Webhook Error: ${err?.message}`);
   }

@@ -1,19 +1,21 @@
 import type { VercelRequest } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import type { AuthenticatedUser } from "./types.js";
+import { config } from "./config.js";
 
 // 既存のインポートパスを維持するため再エクスポート
 export type { AuthenticatedUser };
 
-const supabaseUrl = process.env.SUPABASE_URL!;
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-
-export const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
-  auth: {
-    persistSession: false,
-    autoRefreshToken: false,
-  },
-});
+export const supabaseAdmin = createClient(
+  config.supabase.url,
+  config.supabase.serviceRoleKey,
+  {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  }
+);
 
 export async function getUserFromRequest(
   req: VercelRequest

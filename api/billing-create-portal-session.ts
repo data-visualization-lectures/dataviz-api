@@ -3,11 +3,10 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { setCors } from "./_lib/cors.js";
 import { createStripeClient } from "./_lib/stripe.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
+import { config } from "./_lib/config.js";
 
 // ================== Stripe クライアント ==================
 const stripe = createStripeClient();
-
-const FRONTEND_BASE_URL = process.env.FRONTEND_BASE_URL ?? "https://auth.dataviz.jp";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -47,10 +46,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "no_stripe_customer" });
     }
 
-    // Billing Portal セッション作成
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${FRONTEND_BASE_URL}/account`
+      return_url: `${config.frontend.baseUrl}/account`
     });
 
     return res.status(200).json({ url: portalSession.url });
