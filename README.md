@@ -2,6 +2,18 @@
 
 Supabase 認証と Stripe サブスクリプションを扱う Vercel サーバレスAPIです。フロントエンドは `https://auth.dataviz.jp` を想定しています。
 
+## 特例組織
+
+### 大学
+
+api/_lib/academia.ts に以下のドメインが定義されており、これらを持っているユーザーには isAcademiaEmail 判定によって自動的にサブスクリプションが付与される仕組み（api/me.ts）が存在します。
+
+- @tcu.ac.jp : 東京都市大学
+- @tamabi.ac.jp : 多摩美術大学
+- @fclt.tamabi.ac.jp : 多摩美術大学（教職員など）
+
+
+
 ## 環境変数
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (サービスロールで subscriptions/profiles を読み書き)
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (Stripe Webhook 検証とAPI呼び出し)
