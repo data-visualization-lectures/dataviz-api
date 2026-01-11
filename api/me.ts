@@ -5,6 +5,7 @@ import { setCors } from "./_lib/cors.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { isAcademiaEmail } from "./_lib/academia.js";
 import { logger } from "./_lib/logger.js";
+import { checkAndExpireTrial } from "./_lib/trial.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -51,9 +52,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logger.error("profiles query failed", profileError, { userId: user.id });
     }
 
+    // トライアル期限切れチェック
+    // trialingステータスで期限切れの場合、canceledに自動更新
+    let updatedSubscription = subscription;
+    if (subscription) {
+      const wasExpired = await checkAndExpireTrial(supabaseAdmin, user.id, subscription);
+      if (wasExpired) {
+        // 期限切れで更新された場合、最新のデータを再取得
+        const { data: refreshed } = await supabaseAdmin
+          .from("subscriptions")
+          .select("*")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        updatedSubscription = refreshed;
+      }
+    }
+
     // アカデミア会員（無料付与）判定
     // DBに有効なサブスクリプションがない、かつ大学ドメインの場合に付与
-    let finalSubscription = subscription;
+    let finalSubscription = updatedSubscription;
     if (
       (!subscription || subscription.status !== "active") &&
       user.email &&

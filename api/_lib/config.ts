@@ -42,6 +42,11 @@ export const config = {
     frontend: {
         baseUrl: getOptionalEnv("FRONTEND_BASE_URL", "https://auth.dataviz.jp"),
     },
+
+    // トライアル設定
+    trial: {
+        inviteCode: getOptionalEnv("TRIAL_INVITE_CODE", ""),
+    },
 } as const;
 
 /**
