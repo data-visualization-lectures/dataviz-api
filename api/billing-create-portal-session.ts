@@ -40,11 +40,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "subscriptions_select_failed" });
     }
 
-    const stripeCustomerId = sub?.stripe_customer_id as string | undefined;
+    let stripeCustomerId = sub?.stripe_customer_id as string | undefined;
 
+    // まだ Stripe Customer がなければ作成 (Just-in-Time Creation)
     if (!stripeCustomerId) {
-      // そもそも課金していない or 顧客ID未保存
-      return res.status(400).json({ error: "no_stripe_customer" });
+      const customer = await stripe.customers.create({
+        email: user.email || undefined,
+        metadata: {
+          user_id: user.id
+        }
+      });
+
+      stripeCustomerId = customer.id;
+
+      // Supabase 側に保存
+      if (!sub) {
+        // レコード自体がない場合（通常ありえないが念のため）
+        const { error: insertError } = await supabaseAdmin
+          .from("subscriptions")
+          .insert({
+            user_id: user.id,
+            stripe_customer_id: stripeCustomerId,
+            status: "none"
+          });
+
+        if (insertError) {
+          logger.error("subscriptions insert error (JIT)", insertError);
+          return res.status(500).json({ error: "subscriptions_insert_failed" });
+        }
+      } else {
+        // レコードはあるがIDがない場合（トライアルユーザーなど）
+        const { error: updateError } = await supabaseAdmin
+          .from("subscriptions")
+          .update({ stripe_customer_id: stripeCustomerId })
+          .eq("user_id", user.id);
+
+        if (updateError) {
+          logger.error("subscriptions update error (JIT)", updateError);
+          return res.status(500).json({ error: "subscriptions_update_failed" });
+        }
+      }
     }
 
     const portalSession = await stripe.billingPortal.sessions.create({
