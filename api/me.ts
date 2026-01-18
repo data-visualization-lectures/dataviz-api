@@ -5,7 +5,7 @@ import { setCors } from "./_lib/cors.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { isAcademiaEmail } from "./_lib/academia.js";
 import { logger } from "./_lib/logger.js";
-import { checkAndExpireTrial } from "./_lib/trial.js";
+import { expireSubscriptionIfNeeded } from "./_lib/subscription-expiry.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -52,11 +52,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logger.error("profiles query failed", profileError, { userId: user.id });
     }
 
-    // トライアル期限切れチェック
-    // trialingステータスで期限切れの場合、canceledに自動更新
+    // 期限切れチェック
+    // trialing 期限切れ、または cancel_at_period_end の期間終了で canceled に更新
     let updatedSubscription = subscription;
     if (subscription) {
-      const wasExpired = await checkAndExpireTrial(supabaseAdmin, user.id, subscription);
+      const now = new Date();
+      const wasExpired = await expireSubscriptionIfNeeded(
+        supabaseAdmin,
+        subscription,
+        now
+      );
       if (wasExpired) {
         // 期限切れで更新された場合、最新のデータを再取得
         const { data: refreshed } = await supabaseAdmin

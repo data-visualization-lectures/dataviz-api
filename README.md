@@ -19,6 +19,7 @@ api/_lib/academia.ts に以下のドメインが定義されており、これ�
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (Stripe Webhook 検証とAPI呼び出し)
 - `STRIPE_PRO_MONTHLY_PRICE_ID` (Checkoutで使う価格ID)
 - `FRONTEND_BASE_URL` (省略時 `https://auth.dataviz.jp`)
+- `CRON_SECRET` (任意。設定時は Cron エンドポイントに Bearer で送信)
 
 ## Supabase スキーマ
 - `profiles(id, display_name, created_at, updated_at)`
@@ -49,6 +50,11 @@ api/_lib/academia.ts に以下のドメインが定義されており、これ�
     - `invoice.payment_succeeded`: status を実際の Subscription 状態（なければ active）に更新し、period_end, plan_id を更新。
     - `invoice.payment_failed`: status を `past_due` に更新し、period_end, plan_id を更新。
   - user_id は `subscription.metadata.user_id` か Stripe Customer の `metadata.user_id` から取得する。取得できない場合は警告ログのみ。
+
+- `GET /api/cron-expire-subscriptions`  
+  - Vercel Scheduled Functions 用。  
+  - `current_period_end` が過ぎていて `cancel_at_period_end=true` のものは `canceled` へ更新。  
+  - `trialing` で期限切れのものも `canceled` へ更新。  
 
 ## ステータス扱いの補足
 - Stripeステータス → Supabase `subscription_status`:
