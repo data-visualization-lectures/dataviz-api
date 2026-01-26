@@ -12,6 +12,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS は一番最初に
   setCors(req, res);
 
+  res.setHeader(
+    "Cache-Control",
+    "no-store, no-cache, must-revalidate, proxy-revalidate"
+  );
+  res.setHeader("Pragma", "no-cache");
+  res.setHeader("Expires", "0");
+
   // Preflight (OPTIONS)
   if (req.method === "OPTIONS") {
     return res.status(200).end();
