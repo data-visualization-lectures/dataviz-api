@@ -1,11 +1,17 @@
 // api/projects/[id].ts
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { Buffer } from "node:buffer";
 import { setCors } from "../_lib/cors.js";
 import { getUserFromRequest, supabaseAdmin } from "../_lib/supabase.js";
 import { checkSubscription } from "../_lib/subscription.js";
 import { logger } from "../_lib/logger.js";
+import {
+    buildThumbnailPath,
+    downloadProjectJson,
+    removeProjectFiles,
+    uploadProjectJson,
+    uploadThumbnail,
+} from "../_lib/projects-storage.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -49,25 +55,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // GET: プロジェクト詳細(実データ)取得
         if (req.method === "GET") {
-            const { data: fileData, error: downloadError } = await supabaseAdmin.storage
-                .from("user_projects")
-                .download(project.storage_path);
+            const { data, error: downloadError, parseError } = await downloadProjectJson(project.storage_path);
 
-            if (downloadError) {
+            if (downloadError && !parseError) {
                 logger.error("Project file download failed", downloadError, { userId: user.id, storagePath: project.storage_path });
                 throw downloadError;
             }
 
-            const text = await fileData.text();
-            let json;
-            try {
-                json = JSON.parse(text);
-            } catch (e) {
-                logger.error("Invalid file format in storage", e as Error, { userId: user.id, storagePath: project.storage_path });
+            if (parseError) {
+                logger.error("Invalid file format in storage", downloadError as Error, { userId: user.id, storagePath: project.storage_path });
                 return res.status(500).json({ error: "invalid_file_format" });
             }
 
-            return res.status(200).json(json);
+            return res.status(200).json(data);
         }
 
         // PUT: プロジェクト更新 (名前, データ, サムネイル)
@@ -83,13 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             // データ(JSON)更新
             if (data) {
-                const buffer = Buffer.from(JSON.stringify(data));
-                const { error: storageError } = await supabaseAdmin.storage
-                    .from("user_projects")
-                    .upload(project.storage_path, buffer, {
-                        contentType: "application/json",
-                        upsert: true,
-                    });
+                const { error: storageError } = await uploadProjectJson(project.storage_path, data, true);
 
                 if (storageError) {
                     logger.error("Project file update failed", storageError, { userId: user.id, storagePath: project.storage_path });
@@ -99,26 +93,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             // サムネイル更新
             if (thumbnail) {
-                try {
-                    const base64Data = thumbnail.replace(/^data:image\/\w+;base64,/, "");
-                    const imageBuffer = Buffer.from(base64Data, "base64");
+                const imagePath = project.thumbnail_path || buildThumbnailPath(user.id, project.id);
+                const { path, error: imageUploadError } = await uploadThumbnail(
+                    thumbnail,
+                    imagePath,
+                    true
+                );
 
-                    const imagePath = project.thumbnail_path || `${user.id}/${project.id}.png`;
-
-                    const { error: imageUploadError } = await supabaseAdmin.storage
-                        .from("user_projects")
-                        .upload(imagePath, imageBuffer, {
-                            contentType: "image/png",
-                            upsert: true,
-                        });
-
-                    if (imageUploadError) {
-                        logger.warn("Thumbnail update failed", { error: imageUploadError, userId: user.id });
-                    } else {
-                        updates.thumbnail_path = imagePath;
-                    }
-                } catch (e) {
-                    logger.error("Thumbnail processing error", e as Error, { userId: user.id });
+                if (imageUploadError) {
+                    logger.warn("Thumbnail update failed", { error: imageUploadError, userId: user.id });
+                } else {
+                    updates.thumbnail_path = path;
                 }
             }
 
@@ -158,9 +143,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 filesToRemove.push(project.thumbnail_path);
             }
 
-            const { error: storageError } = await supabaseAdmin.storage
-                .from("user_projects")
-                .remove(filesToRemove);
+            const { error: storageError } = await removeProjectFiles(filesToRemove);
 
             if (storageError) {
                 logger.warn("Project storage removal failed (after DB delete)", { error: storageError, filesToRemove });
@@ -178,4 +161,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .json({ error: "internal_error", detail: err?.message ?? String(err) });
     }
 }
-

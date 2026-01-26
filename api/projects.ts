@@ -1,11 +1,16 @@
 // api/projects.ts
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { Buffer } from "node:buffer";
 import { setCors } from "./_lib/cors.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { checkSubscription } from "./_lib/subscription.js";
 import { logger } from "./_lib/logger.js";
+import {
+    buildProjectJsonPath,
+    buildThumbnailPath,
+    uploadProjectJson,
+    uploadThumbnail,
+} from "./_lib/projects-storage.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -61,16 +66,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
             const crypto = await import("crypto");
             const projectUuid = crypto.randomUUID();
-            const storagePath = `${user.id}/${projectUuid}.json`;
+            const storagePath = buildProjectJsonPath(user.id, projectUuid);
 
             // Buffer化してアップロード
-            const buffer = Buffer.from(JSON.stringify(data));
-            const { error: storageError } = await supabaseAdmin.storage
-                .from("user_projects")
-                .upload(storagePath, buffer, {
-                    contentType: "application/json",
-                    upsert: false,
-                });
+            const { error: storageError } = await uploadProjectJson(storagePath, data, false);
 
             if (storageError) {
                 logger.error("Project storage upload failed", storageError, { userId: user.id, storagePath });
@@ -80,25 +79,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             // 画像保存処理
             let thumbnailPath: string | null = null;
             if (thumbnail) {
-                try {
-                    const base64Data = thumbnail.replace(/^data:image\/\w+;base64,/, "");
-                    const imageBuffer = Buffer.from(base64Data, "base64");
-                    const imagePath = `${user.id}/${projectUuid}.png`;
+                const imagePath = buildThumbnailPath(user.id, projectUuid);
+                const { path, error: imageUploadError } = await uploadThumbnail(
+                    thumbnail,
+                    imagePath,
+                    false
+                );
 
-                    const { error: imageUploadError } = await supabaseAdmin.storage
-                        .from("user_projects")
-                        .upload(imagePath, imageBuffer, {
-                            contentType: "image/png",
-                            upsert: false,
-                        });
-
-                    if (imageUploadError) {
-                        logger.warn("Thumbnail upload failed", { error: imageUploadError, userId: user.id });
-                    } else {
-                        thumbnailPath = imagePath;
-                    }
-                } catch (e) {
-                    logger.error("Thumbnail processing error", e as Error, { userId: user.id });
+                if (imageUploadError) {
+                    logger.warn("Thumbnail upload failed", { error: imageUploadError, userId: user.id });
+                } else {
+                    thumbnailPath = path;
                 }
             }
 
@@ -133,4 +124,3 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .json({ error: "internal_error", detail: err?.message ?? String(err) });
     }
 }
-
