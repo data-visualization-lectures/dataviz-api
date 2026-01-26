@@ -119,6 +119,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // DELETE: プロジェクト削除
         if (req.method === "DELETE") {
+            const filesToRemove = [project.storage_path];
+            if (project.thumbnail_path) {
+                filesToRemove.push(project.thumbnail_path);
+            }
+
+            const { error: storageError } = await removeProjectFiles(filesToRemove);
+
+            if (storageError) {
+                logger.error("Project storage removal failed", storageError as Error, { userId: user.id, projectId: id, filesToRemove });
+                return res.status(500).json({ error: "storage_delete_failed" });
+            }
+
             const { error: deleteError } = await supabaseAdmin
                 .from("projects")
                 .delete()
@@ -128,17 +140,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (deleteError) {
                 logger.error("Project DB deletion failed", deleteError, { userId: user.id, projectId: id });
                 throw deleteError;
-            }
-
-            const filesToRemove = [project.storage_path];
-            if (project.thumbnail_path) {
-                filesToRemove.push(project.thumbnail_path);
-            }
-
-            const { error: storageError } = await removeProjectFiles(filesToRemove);
-
-            if (storageError) {
-                logger.warn("Project storage removal failed (after DB delete)", { error: storageError, filesToRemove });
             }
 
             logger.info("Project deleted successfully", { userId: user.id, projectId: id });
