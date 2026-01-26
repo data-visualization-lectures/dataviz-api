@@ -4,6 +4,7 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { handleCorsAndMethods } from "./_lib/http.js";
 import { supabaseAdmin } from "./_lib/supabase.js";
 import { requireAuth, requireSubscription } from "./_lib/auth-guards.js";
+import { logger } from "./_lib/logger.js";
 import {
     buildProjectJsonPath,
     buildThumbnailPath,
