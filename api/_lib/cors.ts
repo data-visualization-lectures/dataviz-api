@@ -22,7 +22,7 @@ export function setCors(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
   res.setHeader(
     "Access-Control-Allow-Headers",
-    "Content-Type,Authorization,X-Requested-With"
+    "Content-Type,Authorization,X-Requested-With,Cache-Control,Pragma"
   );
 
   // OPTIONS リクエストには 200 OK を返して即座に終了させる必要がある（呼び出し側でも処理しているが二重の安全策）
