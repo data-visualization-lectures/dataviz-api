@@ -3,6 +3,7 @@ import { Buffer } from "node:buffer";
 import { setCors } from "../../_lib/cors.js";
 import { getUserFromRequest, supabaseAdmin } from "../../_lib/supabase.js";
 import { checkSubscription } from "../../_lib/subscription.js";
+import { logger } from "../../_lib/logger.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     setCors(req, res);
@@ -51,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             .download(project.thumbnail_path);
 
         if (downloadError) {
-            console.error("thumbnail download error", downloadError);
+            logger.error("thumbnail download error", downloadError, { projectId: id, userId: user.id });
             return res.status(500).json({ error: "download_failed" });
         }
 
@@ -64,7 +65,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         return res.status(200).send(buffer);
     } catch (err: any) {
-        console.error("thumbnail handler error", err);
+        logger.error("thumbnail handler error", err as Error, { projectId: id });
         return res.status(500).json({ error: "internal_error", detail: err?.message ?? String(err) });
     }
 }

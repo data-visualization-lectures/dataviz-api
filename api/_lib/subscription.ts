@@ -2,6 +2,7 @@
 
 import { AuthenticatedUser, supabaseAdmin } from "./supabase.js";
 import { isAcademiaEmail } from "./academia.js";
+import { logger } from "./logger.js";
 
 export async function checkSubscription(user: AuthenticatedUser): Promise<boolean> {
     // 1. Check DB for active/trialing subscription
@@ -26,7 +27,7 @@ export async function checkSubscription(user: AuthenticatedUser): Promise<boolea
 
     // Error logging if needed, or simply return false
     if (error) {
-        console.error("checkSubscription error", error);
+        logger.error("checkSubscription error", error as Error, { userId: user.id });
     }
 
     return false;

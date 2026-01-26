@@ -1,6 +1,8 @@
 // api/_lib/config.ts
 // 環境変数の型安全な管理
 
+import { logger } from "./logger.js";
+
 /**
  * 必須の環境変数を取得し、存在しない場合はエラーをスロー
  */
@@ -69,9 +71,9 @@ export function validateConfig(): void {
             config.stripe.proMonthlyPriceId,
         ];
 
-        console.log("✅ All required environment variables are set");
+        logger.info("All required environment variables are set");
     } catch (error) {
-        console.error("❌ Environment variable validation failed:", error);
+        logger.error("Environment variable validation failed", error as Error);
         throw error;
     }
 }
