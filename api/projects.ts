@@ -2,9 +2,8 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { handleCorsAndMethods } from "./_lib/http.js";
-import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
-import { checkSubscription } from "./_lib/subscription.js";
-import { logger } from "./_lib/logger.js";
+import { supabaseAdmin } from "./_lib/supabase.js";
+import { requireAuth, requireSubscription } from "./_lib/auth-guards.js";
 import {
     buildProjectJsonPath,
     buildThumbnailPath,
@@ -19,18 +18,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     try {
-        const user = await getUserFromRequest(req);
-        if (!user) {
-            logger.warn("Unauthenticated request to projects API");
-            return res.status(401).json({ error: "not_authenticated" });
-        }
+        const user = await requireAuth(req, res);
+        if (!user) return;
 
         // サブスクリプションチェック
-        const hasSubscription = await checkSubscription(user);
-        if (!hasSubscription) {
-            logger.info("Subscription required for project access", { userId: user.id });
-            return res.status(403).json({ error: "subscription_required" });
-        }
+        const hasSubscription = await requireSubscription(req, res, user);
+        if (!hasSubscription) return;
 
         // GET: プロジェクト一覧取得
         if (req.method === "GET") {
