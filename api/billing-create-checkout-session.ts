@@ -1,6 +1,6 @@
 // /api/billing-create-checkout-session.ts
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setCors } from "./_lib/cors.js";
+import { handleCorsAndMethods } from "./_lib/http.js";
 import { createStripeClient } from "./_lib/stripe.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { config } from "./_lib/config.js";
@@ -11,15 +11,8 @@ const stripe = createStripeClient();
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  setCors(req, res);
-
-  // Preflight
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
-  if (req.method !== "POST") {
-    return res.status(405).end();
+  if (handleCorsAndMethods(req, res, ["POST"])) {
+    return;
   }
 
   try {

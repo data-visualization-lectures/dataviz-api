@@ -1,7 +1,7 @@
 // api/projects/[id].ts
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setCors } from "../_lib/cors.js";
+import { handleCorsAndMethods } from "../_lib/http.js";
 import { getUserFromRequest, supabaseAdmin } from "../_lib/supabase.js";
 import { checkSubscription } from "../_lib/subscription.js";
 import { logger } from "../_lib/logger.js";
@@ -15,10 +15,8 @@ import {
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    setCors(req, res);
-
-    if (req.method === "OPTIONS") {
-        return res.status(200).end();
+    if (handleCorsAndMethods(req, res, ["GET", "PUT", "DELETE"])) {
+        return;
     }
 
     const { id } = req.query;

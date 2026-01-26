@@ -1,7 +1,7 @@
 // /api/me.ts
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { setCors } from "./_lib/cors.js";
+import { handleCorsAndMethods } from "./_lib/http.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { isAcademiaEmail } from "./_lib/academia.js";
 import { logger } from "./_lib/logger.js";
@@ -10,8 +10,7 @@ import { expireSubscriptionIfNeeded } from "./_lib/subscription-expiry.js";
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS は一番最初に
-  const handled = setCors(req, res);
-  if (handled) {
+  if (handleCorsAndMethods(req, res, ["GET"])) {
     return;
   }
 
@@ -22,16 +21,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Pragma", "no-cache");
   res.setHeader("Expires", "0");
 
-  // Preflight (OPTIONS)
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
-
   try {
-    if (req.method !== "GET") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
-
     const user = await getUserFromRequest(req);
     if (!user) {
       return res.status(401).json({ error: "not_authenticated" });

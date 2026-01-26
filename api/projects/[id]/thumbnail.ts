@@ -1,19 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Buffer } from "node:buffer";
-import { setCors } from "../../_lib/cors.js";
+import { handleCorsAndMethods } from "../../_lib/http.js";
 import { getUserFromRequest, supabaseAdmin } from "../../_lib/supabase.js";
 import { checkSubscription } from "../../_lib/subscription.js";
 import { logger } from "../../_lib/logger.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-    setCors(req, res);
-
-    if (req.method === "OPTIONS") {
-        return res.status(200).end();
-    }
-
-    if (req.method !== "GET") {
-        return res.status(405).json({ error: "Method not allowed" });
+    if (handleCorsAndMethods(req, res, ["GET"])) {
+        return;
     }
 
     const { id } = req.query;
