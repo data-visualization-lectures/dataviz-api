@@ -10,7 +10,10 @@ import { expireSubscriptionIfNeeded } from "./_lib/subscription-expiry.js";
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS は一番最初に
-  setCors(req, res);
+  const handled = setCors(req, res);
+  if (handled) {
+    return;
+  }
 
   res.setHeader(
     "Cache-Control",
