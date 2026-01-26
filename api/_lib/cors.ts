@@ -11,7 +11,7 @@ export function setCors(req: VercelRequest, res: VercelResponse) {
   // 2. dataviz.jp
   // 3. localhost: (開発用)
   // 4. *-yuichiyazaki.vercel.app (プレビュー環境)
-  const allowedOriginRegex = /^(https:\/\/(.*\.dataviz\.jp|dataviz\.jp)|http:\/\/localhost(:\d+)?|https:\/\/.*-yuichiyazaki\.vercel\.app)$/;
+  const allowedOriginRegex = /^(https:\/\/(.*\.dataviz\.jp|dataviz\.jp)(:\d+)?|http:\/\/localhost(:\d+)?|https:\/\/.*-yuichiyazaki\.vercel\.app(:\d+)?)$/;
 
   if (origin && allowedOriginRegex.test(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
