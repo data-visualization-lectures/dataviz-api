@@ -31,7 +31,7 @@ export async function createTrialSubscription(
         user_id: userId,
         status: "trialing",
         current_period_end: trialEndDate.toISOString(),
-        plan_id: "pro_monthly",
+        plan_id: "trial",
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
     });
