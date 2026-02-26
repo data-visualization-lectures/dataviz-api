@@ -20,7 +20,7 @@ export async function checkSubscription(user: AuthenticatedUser): Promise<boolea
     // 2. Academia check as fallback
     // アカデミア会員（無料付与）判定
     // DBに有効なサブスクリプションがない、かつ大学ドメインの場合に付与
-    if (user.email && isAcademiaEmail(user.email)) {
+    if (user.email && (await isAcademiaEmail(user.email))) {
         // DBにレコードがなくても、アカデミアメールアドレスなら許可
         return true;
     }

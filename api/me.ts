@@ -79,7 +79,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (
       (!subscription || subscription.status !== "active") &&
       user.email &&
-      isAcademiaEmail(user.email)
+      (await isAcademiaEmail(user.email))
     ) {
       if (!subscription) {
         // 全くレコードがない場合はオブジェクトを捏造

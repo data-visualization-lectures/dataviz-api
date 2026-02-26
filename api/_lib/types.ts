@@ -87,6 +87,18 @@ export interface PortalSessionResponse {
 }
 
 /**
+ * Supabase academia_domains テーブルのレコード型
+ */
+export interface AcademiaDomainRecord {
+  id: string;
+  domain: string;
+  university_name: string;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
  * エラーレスポンスの型
  */
 export interface ErrorResponse {
