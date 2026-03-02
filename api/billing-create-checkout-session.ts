@@ -81,13 +81,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // リクエストボディから plan を取得（デフォルト: 月額）
+    const { plan } = req.body ?? {};
+    const PRICE_MAP: Record<string, string> = {
+      monthly: config.stripe.proMonthlyPriceId,
+      yearly: config.stripe.proYearlyPriceId,
+    };
+    const priceId = PRICE_MAP[plan] ?? config.stripe.proMonthlyPriceId;
+
     // Checkout セッション作成
     const session = await stripe.checkout.sessions.create({
       mode: "subscription",
       customer: stripeCustomerId,
       line_items: [
         {
-          price: config.stripe.proMonthlyPriceId,
+          price: priceId,
           quantity: 1
         }
       ],

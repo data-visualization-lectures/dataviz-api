@@ -37,6 +37,7 @@ export const config = {
         secretKey: getRequiredEnv("STRIPE_SECRET_KEY"),
         webhookSecret: getRequiredEnv("STRIPE_WEBHOOK_SECRET"),
         proMonthlyPriceId: getRequiredEnv("STRIPE_PRO_MONTHLY_PRICE_ID"),
+        proYearlyPriceId: getRequiredEnv("STRIPE_PRO_YEARLY_PRICE_ID"),
         apiVersion: "2024-06-20" as const,
     },
 
@@ -69,6 +70,7 @@ export function validateConfig(): void {
             config.stripe.secretKey,
             config.stripe.webhookSecret,
             config.stripe.proMonthlyPriceId,
+            config.stripe.proYearlyPriceId,
         ];
 
         logger.info("All required environment variables are set");
