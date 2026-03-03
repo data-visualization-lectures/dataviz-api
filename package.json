@@ -2,10 +2,16 @@
   "name": "dataviz-api",
   "version": "1.0.0",
   "type": "module",
+  "scripts": {
+    "dev:test": "dotenv -e .env.test -- vercel dev --listen 3001"
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.0",
     "@types/busboy": "^1.5.4",
     "busboy": "^1.6.0",
     "stripe": "^16.0.0"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^11.0.0"
   }
 }
