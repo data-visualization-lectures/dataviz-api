@@ -86,6 +86,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const PRICE_MAP: Record<string, string> = {
       monthly: config.stripe.proMonthlyPriceId,
       yearly: config.stripe.proYearlyPriceId,
+      coaching_monthly: config.stripe.coachingMonthlyPriceId,
+      coaching_yearly: config.stripe.coachingYearlyPriceId,
     };
     const priceId = PRICE_MAP[plan] ?? config.stripe.proMonthlyPriceId;
 
