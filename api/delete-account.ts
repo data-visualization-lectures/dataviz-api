@@ -68,8 +68,45 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         }
 
-        // 3. Supabase Auth ユーザー削除 (CASCADE で profiles, projects, subscriptions も削除)
-        const { error: deleteError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+        // 3. DB レコードを明示的に削除（CASCADE だけに頼らない防御的アプローチ）
+        const { error: subDelError } = await supabaseAdmin
+            .from("subscriptions")
+            .delete()
+            .eq("user_id", userId);
+        if (subDelError) {
+            logger.warn("Subscriptions deletion failed", { userId, error: subDelError.message });
+        } else {
+            logger.info("Subscriptions deleted", { userId });
+        }
+
+        const { error: projDelError } = await supabaseAdmin
+            .from("projects")
+            .delete()
+            .eq("user_id", userId);
+        if (projDelError) {
+            logger.warn("Projects deletion failed", { userId, error: projDelError.message });
+        } else {
+            logger.info("Projects deleted", { userId });
+        }
+
+        const { error: profDelError } = await supabaseAdmin
+            .from("profiles")
+            .delete()
+            .eq("id", userId);
+        if (profDelError) {
+            logger.warn("Profiles deletion failed", { userId, error: profDelError.message });
+        } else {
+            logger.info("Profiles deleted", { userId });
+        }
+
+        // 4. Supabase Auth ユーザー削除（明示的に hard delete を指定）
+        const { data: deleteData, error: deleteError } =
+            await supabaseAdmin.auth.admin.deleteUser(userId, false);
+        logger.info("deleteUser response", {
+            userId,
+            data: deleteData,
+            error: deleteError,
+        });
         if (deleteError) {
             logger.error("User deletion failed", deleteError as unknown as Error, { userId });
             throw deleteError;
