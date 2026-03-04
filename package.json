@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev:test": "dotenv -e .env.test -- vercel dev --listen 3001"
+    "dev:test": "USE_ENV_FILE=.env.test vercel dev --listen 3001"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.0",

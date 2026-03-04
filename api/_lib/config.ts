@@ -1,6 +1,13 @@
 // api/_lib/config.ts
 // 環境変数の型安全な管理
 
+// USE_ENV_FILE が指定されている場合、そのファイルから環境変数を読み込む
+// vercel dev がクラウド環境変数を優先するため、ローカルテスト時に使用
+if (process.env.USE_ENV_FILE) {
+    const dotenv = await import("dotenv");
+    dotenv.config({ path: process.env.USE_ENV_FILE, override: true });
+}
+
 import { logger } from "./logger.js";
 
 /**
