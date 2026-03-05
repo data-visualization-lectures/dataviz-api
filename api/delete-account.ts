@@ -50,7 +50,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         }
 
-        // 2. Stripe Customer の削除
+        // 2. OpenRefine Storage ファイルの削除
+        const { data: orProjects, error: orProjectsError } = await supabaseAdmin
+            .from("openrefine_projects")
+            .select("archive_path, thumbnail_path")
+            .eq("user_id", userId);
+
+        if (orProjectsError) {
+            logger.warn("Failed to fetch OpenRefine projects for deletion", { userId, error: orProjectsError.message });
+        } else if (orProjects && orProjects.length > 0) {
+            const orFilesToRemove: string[] = [];
+            for (const p of orProjects) {
+                if (p.archive_path) orFilesToRemove.push(p.archive_path);
+                if (p.thumbnail_path) orFilesToRemove.push(p.thumbnail_path);
+            }
+
+            if (orFilesToRemove.length > 0) {
+                const { error: orStorageError } = await supabaseAdmin.storage
+                    .from("openrefine-projects")
+                    .remove(orFilesToRemove);
+                if (orStorageError) {
+                    logger.warn("OpenRefine storage file removal partially failed", { userId, error: orStorageError });
+                } else {
+                    logger.info("OpenRefine storage files removed", { userId, count: orFilesToRemove.length });
+                }
+            }
+        }
+
+        // 3. Stripe Customer の削除
         const { data: subscription } = await supabaseAdmin
             .from("subscriptions")
             .select("stripe_customer_id")
@@ -68,7 +95,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
         }
 
-        // 3. DB レコードを明示的に削除（CASCADE だけに頼らない防御的アプローチ）
+        // 4. DB レコードを明示的に削除（CASCADE だけに頼らない防御的アプローチ）
         const { error: subDelError } = await supabaseAdmin
             .from("subscriptions")
             .delete()
@@ -89,6 +116,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             logger.info("Projects deleted", { userId });
         }
 
+        const { error: orRuntimeDelError } = await supabaseAdmin
+            .from("openrefine_runtime_projects")
+            .delete()
+            .eq("owner_id", userId);
+        if (orRuntimeDelError) {
+            logger.warn("OpenRefine runtime projects deletion failed", { userId, error: orRuntimeDelError.message });
+        } else {
+            logger.info("OpenRefine runtime projects deleted", { userId });
+        }
+
+        const { error: orProjDelError } = await supabaseAdmin
+            .from("openrefine_projects")
+            .delete()
+            .eq("user_id", userId);
+        if (orProjDelError) {
+            logger.warn("OpenRefine projects deletion failed", { userId, error: orProjDelError.message });
+        } else {
+            logger.info("OpenRefine projects deleted", { userId });
+        }
+
         const { error: profDelError } = await supabaseAdmin
             .from("profiles")
             .delete()
@@ -99,7 +146,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             logger.info("Profiles deleted", { userId });
         }
 
-        // 4. Supabase Auth ユーザー削除（明示的に hard delete を指定）
+        // 5. Supabase Auth ユーザー削除（明示的に hard delete を指定）
         const { data: deleteData, error: deleteError } =
             await supabaseAdmin.auth.admin.deleteUser(userId, false);
         logger.info("deleteUser response", {
