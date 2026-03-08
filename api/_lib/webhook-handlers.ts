@@ -123,6 +123,18 @@ export async function handleSubscriptionDeleted(
         return;
     }
 
+    // ユーザーが既に削除されている場合（アカウント削除フロー）はスキップ
+    const { data: profile } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (!profile) {
+        logger.info("subscription.deleted: user already deleted, skipping upsert", { userId, customerId });
+        return;
+    }
+
     const status = mapStripeStatus(subscription.status ?? "canceled");
     const currentPeriodEnd = toIso(subscription.current_period_end) ?? undefined;
     const cancelAtPeriodEnd = subscription.cancel_at_period_end;
