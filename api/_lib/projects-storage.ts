@@ -3,6 +3,9 @@ import { supabaseAdmin } from "./supabase.js";
 
 const STORAGE_BUCKET = "user_projects";
 
+/** アップロード上限 (bytes): 50 MB */
+export const MAX_UPLOAD_BYTES = 50 * 1024 * 1024;
+
 export function buildProjectJsonPath(userId: string, projectId: string): string {
   return `${userId}/${projectId}.json`;
 }

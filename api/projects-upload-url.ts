@@ -9,6 +9,7 @@ import {
     buildProjectJsonPath,
     buildThumbnailPath,
     createSignedUploadUrl,
+    MAX_UPLOAD_BYTES,
 } from "./_lib/projects-storage.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -68,6 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             upload_url: signedUrl,
             storage_path: storagePath,
             project_id: projectUuid,
+            max_upload_bytes: MAX_UPLOAD_BYTES,
         });
     } catch (err: any) {
         logger.error("Upload URL handler error", err as Error);
