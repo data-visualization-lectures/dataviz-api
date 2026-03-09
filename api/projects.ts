@@ -5,6 +5,7 @@ import { handleCorsAndMethods } from "./_lib/http.js";
 import { supabaseAdmin } from "./_lib/supabase.js";
 import { requireAuth, requireSubscription } from "./_lib/auth-guards.js";
 import { logger } from "./_lib/logger.js";
+import { config } from "./_lib/config.js";
 import {
     buildProjectJsonPath,
     buildThumbnailPath,
@@ -29,6 +30,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // GET: プロジェクト一覧取得
         if (req.method === "GET") {
+            const source = req.query.source as string | undefined;
+
+            // source=public: パブリックプロジェクト一覧（app フィルタ任意）
+            if (source === "public") {
+                const publicUserId = config.publicProjects.userId;
+                if (!publicUserId) {
+                    return res.status(200).json({ projects: [] });
+                }
+
+                let query = supabaseAdmin
+                    .from("projects")
+                    .select("id, name, app_name, thumbnail_path, created_at, updated_at")
+                    .eq("user_id", publicUserId);
+
+                const appName = req.query.app as string | undefined;
+                if (appName) {
+                    query = query.eq("app_name", appName);
+                }
+
+                const { data: projects, error } = await query.order("updated_at", { ascending: false });
+
+                if (error) {
+                    logger.error("Failed to fetch public projects", error);
+                    throw error;
+                }
+
+                return res.status(200).json({ projects });
+            }
+
+            // 従来: 自分のプロジェクト一覧
             const appName = req.query.app as string;
             if (!appName) {
                 return res.status(400).json({ error: "missing_app_name" });

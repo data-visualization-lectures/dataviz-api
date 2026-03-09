@@ -12,6 +12,7 @@ import {
     uploadThumbnail,
 } from "../_lib/projects-storage.js";
 import { requireAuth, requireSubscription } from "../_lib/auth-guards.js";
+import { config } from "../_lib/config.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -32,21 +33,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const hasSubscription = await requireSubscription(req, res, user);
         if (!hasSubscription) return;
 
-        // 対象プロジェクトの所有権確認と情報取得
-        const { data: project, error: fetchError } = await supabaseAdmin
-            .from("projects")
-            .select("*")
-            .eq("id", id)
-            .eq("user_id", user.id) // 所有権チェック
-            .single();
-
-        if (fetchError || !project) {
-            logger.error("Project not found or access denied", fetchError ?? undefined, { userId: user.id, projectId: id });
-            return res.status(404).json({ error: "project_not_found" });
-        }
-
-        // GET: プロジェクト詳細(実データ)取得
+        // GET: パブリックプロジェクトも読み取り可能
         if (req.method === "GET") {
+            const publicUserId = config.publicProjects.userId;
+            let query = supabaseAdmin
+                .from("projects")
+                .select("*")
+                .eq("id", id);
+
+            if (publicUserId) {
+                query = query.or(`user_id.eq.${user.id},user_id.eq.${publicUserId}`);
+            } else {
+                query = query.eq("user_id", user.id);
+            }
+
+            const { data: project, error: fetchError } = await query.single();
+
+            if (fetchError || !project) {
+                return res.status(404).json({ error: "project_not_found" });
+            }
             const { data, error: downloadError, parseError } = await downloadProjectJson(project.storage_path);
 
             if (downloadError && !parseError) {
@@ -60,6 +65,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
 
             return res.status(200).json(data);
+        }
+
+        // PUT/DELETE: 所有者のみ（パブリックプロジェクトは編集・削除不可）
+        const { data: project, error: fetchError } = await supabaseAdmin
+            .from("projects")
+            .select("*")
+            .eq("id", id)
+            .eq("user_id", user.id)
+            .single();
+
+        if (fetchError || !project) {
+            logger.error("Project not found or access denied", fetchError ?? undefined, { userId: user.id, projectId: id });
+            return res.status(404).json({ error: "project_not_found" });
         }
 
         // PUT: プロジェクト更新 (名前, データ, サムネイル)

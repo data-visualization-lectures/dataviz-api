@@ -4,6 +4,7 @@ import { handleCorsAndMethods } from "../../_lib/http.js";
 import { getUserFromRequest, supabaseAdmin } from "../../_lib/supabase.js";
 import { checkSubscription } from "../../_lib/subscription.js";
 import { logger } from "../../_lib/logger.js";
+import { config } from "../../_lib/config.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (handleCorsAndMethods(req, res, ["GET"])) {
@@ -26,12 +27,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(403).json({ error: "subscription_required" });
         }
 
-        const { data: project, error: fetchError } = await supabaseAdmin
+        const publicUserId = config.publicProjects.userId;
+        let query = supabaseAdmin
             .from("projects")
             .select("thumbnail_path")
-            .eq("id", id)
-            .eq("user_id", user.id)
-            .single();
+            .eq("id", id);
+
+        if (publicUserId) {
+            query = query.or(`user_id.eq.${user.id},user_id.eq.${publicUserId}`);
+        } else {
+            query = query.eq("user_id", user.id);
+        }
+
+        const { data: project, error: fetchError } = await query.single();
 
         if (fetchError || !project) {
             return res.status(404).json({ error: "project_not_found" });

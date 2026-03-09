@@ -59,6 +59,11 @@ export const config = {
     trial: {
         inviteCode: getOptionalEnv("TRIAL_INVITE_CODE", ""),
     },
+
+    // パブリックプロジェクト設定
+    publicProjects: {
+        userId: getOptionalEnv("PUBLIC_PROJECT_USER_ID", ""),
+    },
 } as const;
 
 /**
