@@ -68,6 +68,32 @@ export async function uploadThumbnail(
   }
 }
 
+export async function createSignedUploadUrl(
+  storagePath: string
+): Promise<{ signedUrl: string | null; error: unknown | null }> {
+  const { data, error } = await supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUploadUrl(storagePath);
+
+  if (error || !data) {
+    return { signedUrl: null, error: error ?? new Error("No signed URL returned") };
+  }
+
+  return { signedUrl: data.signedUrl, error: null };
+}
+
+export async function fileExists(storagePath: string): Promise<boolean> {
+  // ファイルのディレクトリ内を list して存在確認（download より軽量）
+  const dir = storagePath.substring(0, storagePath.lastIndexOf("/"));
+  const fileName = storagePath.substring(storagePath.lastIndexOf("/") + 1);
+
+  const { data, error } = await supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .list(dir, { search: fileName, limit: 1 });
+
+  return !error && !!data && data.length > 0;
+}
+
 export async function removeProjectFiles(paths: string[]): Promise<{ error: unknown | null }> {
   const { error } = await supabaseAdmin.storage
     .from(STORAGE_BUCKET)

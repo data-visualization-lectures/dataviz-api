@@ -64,7 +64,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // PUT: プロジェクト更新 (名前, データ, サムネイル)
         if (req.method === "PUT") {
-            const { name, data, thumbnail } = req.body;
+            const { name, data, thumbnail, storage_uploaded } = req.body;
             const updates: any = {
                 updated_at: new Date().toISOString(),
             };
@@ -74,7 +74,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
 
             // データ(JSON)更新
-            if (data) {
+            if (storage_uploaded) {
+                // 大容量フロー: クライアントが署名付きURLで直接アップロード済み — Storage操作不要
+                logger.info("Storage upload confirmed (direct upload)", { userId: user.id, projectId: id });
+            } else if (data) {
                 const { error: storageError } = await uploadProjectJson(project.storage_path, data, true);
 
                 if (storageError) {

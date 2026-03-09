@@ -10,6 +10,7 @@ import {
     buildThumbnailPath,
     uploadProjectJson,
     uploadThumbnail,
+    fileExists,
 } from "./_lib/projects-storage.js";
 
 // ================== ハンドラ本体 ==================
@@ -50,22 +51,43 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // POST: プロジェクト新規保存
         if (req.method === "POST") {
-            const { name, app_name, data, thumbnail } = req.body;
+            const { name, app_name, data, thumbnail, storage_uploaded, storage_path, project_id } = req.body;
 
-            if (!name || !app_name || !data) {
+            if (!name || !app_name) {
                 return res.status(400).json({ error: "missing_required_fields" });
             }
 
-            const crypto = await import("crypto");
-            const projectUuid = crypto.randomUUID();
-            const storagePath = buildProjectJsonPath(user.id, projectUuid);
+            let projectUuid: string;
+            let storagePath: string;
 
-            // Buffer化してアップロード
-            const { error: storageError } = await uploadProjectJson(storagePath, data, false);
+            if (storage_uploaded) {
+                // 大容量フロー: クライアントが署名付きURLで直接アップロード済み
+                if (!project_id || !storage_path) {
+                    return res.status(400).json({ error: "missing_required_fields", detail: "storage_uploaded requires project_id and storage_path" });
+                }
+                projectUuid = project_id;
+                storagePath = storage_path;
 
-            if (storageError) {
-                logger.error("Project storage upload failed", storageError, { userId: user.id, storagePath });
-                throw storageError;
+                // Storage にファイルが存在するか確認
+                const exists = await fileExists(storagePath);
+                if (!exists) {
+                    return res.status(400).json({ error: "storage_file_not_found", detail: "Upload the file to storage before creating the project" });
+                }
+            } else {
+                // 従来フロー: リクエストボディにデータ含む
+                if (!data) {
+                    return res.status(400).json({ error: "missing_required_fields" });
+                }
+
+                const crypto = await import("crypto");
+                projectUuid = crypto.randomUUID();
+                storagePath = buildProjectJsonPath(user.id, projectUuid);
+
+                const { error: storageError } = await uploadProjectJson(storagePath, data, false);
+                if (storageError) {
+                    logger.error("Project storage upload failed", storageError, { userId: user.id, storagePath });
+                    throw storageError;
+                }
             }
 
             // 画像保存処理
@@ -85,7 +107,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 }
             }
 
-            // 2. DB へ保存
+            // DB へ保存
             const { data: project, error: dbError } = await supabaseAdmin
                 .from("projects")
                 .insert({
