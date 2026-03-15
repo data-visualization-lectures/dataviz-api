@@ -5,16 +5,6 @@ import { isAcademiaEmail } from "./academia.js";
 import { logger } from "./logger.js";
 
 export async function checkSubscription(user: AuthenticatedUser): Promise<boolean> {
-    // 0. 管理者は常にアクセス可能
-    const { data: profile } = await supabaseAdmin
-        .from("profiles")
-        .select("is_admin")
-        .eq("id", user.id)
-        .maybeSingle();
-    if (profile?.is_admin) {
-        return true;
-    }
-
     // 1. Check DB for active/trialing subscription
     const { data: subscription, error } = await supabaseAdmin
         .from("subscriptions")
