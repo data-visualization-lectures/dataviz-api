@@ -7,7 +7,7 @@ import { logger } from "./logger.js";
 /**
  * トライアル期間（日数）
  */
-export const TRIAL_PERIOD_DAYS = 30;
+export const TRIAL_PERIOD_DAYS = 14;
 
 /**
  * 招待コードが有効かどうかを検証
