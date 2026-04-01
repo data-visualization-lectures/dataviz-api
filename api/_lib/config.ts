@@ -52,7 +52,7 @@ export const config = {
 
     // フロントエンド設定
     frontend: {
-        baseUrl: getOptionalEnv("FRONTEND_BASE_URL", "https://auth.dataviz.jp"),
+        baseUrl: getOptionalEnv("FRONTEND_BASE_URL", "https://app.dataviz.jp"),
     },
 
     // トライアル設定
