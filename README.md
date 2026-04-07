@@ -1,6 +1,6 @@
 # dataviz-api (Supabase × Stripe × Vercel)
 
-Supabase 認証と Stripe サブスクリプションを扱う Vercel サーバレスAPIです。フロントエンドは `https://auth.dataviz.jp` を想定しています。
+Supabase 認証と Stripe サブスクリプションを扱う Vercel サーバレスAPIです。フロントエンドは `https://app.dataviz.jp` を想定しています。
 
 ## 特例組織
 
@@ -16,7 +16,7 @@ Supabase の `academia_domains` テーブルで管理されている大学ドメ
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (サービスロールで subscriptions/profiles を読み書き)
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (Stripe Webhook 検証とAPI呼び出し)
 - `STRIPE_PRO_MONTHLY_PRICE_ID` (Checkoutで使う価格ID)
-- `FRONTEND_BASE_URL` (省略時 `https://auth.dataviz.jp`)
+- `FRONTEND_BASE_URL` (省略時 `https://app.dataviz.jp`)
 - `CRON_SECRET` (任意。設定時は Cron エンドポイントに Bearer で送信)
 
 ## Supabase スキーマ
@@ -29,7 +29,7 @@ Supabase の `academia_domains` テーブルで管理されている大学ドメ
 ## エンドポイント
 - `GET /api/me`  
   - 認証: `Authorization: Bearer <access_token>` (Supabaseセッション)  
-  - 戻り値: `{ user, profile, subscription }`。未認証は401。CORSは `https://auth.dataviz.jp` のみ。
+  - 戻り値: `{ user, profile, subscription }`。未認証は401。CORSは `https://app.dataviz.jp` のみ。
 
 - `POST /api/billing-create-checkout-session`  
   - 認証必須。`subscriptions` から `stripe_customer_id` を取得/なければ作成して保存。  
