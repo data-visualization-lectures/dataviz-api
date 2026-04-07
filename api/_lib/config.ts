@@ -47,6 +47,12 @@ export const config = {
         proYearlyPriceId: getRequiredEnv("STRIPE_PRO_YEARLY_PRICE_ID"),
         coachingMonthlyPriceId: getRequiredEnv("STRIPE_COACHING_MONTHLY_PRICE_ID"),
         coachingYearlyPriceId: getRequiredEnv("STRIPE_COACHING_YEARLY_PRICE_ID"),
+        teamSmallMonthlyPriceId: getRequiredEnv("STRIPE_TEAM_SMALL_MONTHLY_PRICE_ID"),
+        teamSmallYearlyPriceId: getRequiredEnv("STRIPE_TEAM_SMALL_YEARLY_PRICE_ID"),
+        teamStandardMonthlyPriceId: getRequiredEnv("STRIPE_TEAM_STANDARD_MONTHLY_PRICE_ID"),
+        teamStandardYearlyPriceId: getRequiredEnv("STRIPE_TEAM_STANDARD_YEARLY_PRICE_ID"),
+        teamEnterpriseMonthlyPriceId: getRequiredEnv("STRIPE_TEAM_ENTERPRISE_MONTHLY_PRICE_ID"),
+        teamEnterpriseYearlyPriceId: getRequiredEnv("STRIPE_TEAM_ENTERPRISE_YEARLY_PRICE_ID"),
         apiVersion: "2024-06-20" as const,
     },
 
@@ -87,6 +93,12 @@ export function validateConfig(): void {
             config.stripe.proYearlyPriceId,
             config.stripe.coachingMonthlyPriceId,
             config.stripe.coachingYearlyPriceId,
+            config.stripe.teamSmallMonthlyPriceId,
+            config.stripe.teamSmallYearlyPriceId,
+            config.stripe.teamStandardMonthlyPriceId,
+            config.stripe.teamStandardYearlyPriceId,
+            config.stripe.teamEnterpriseMonthlyPriceId,
+            config.stripe.teamEnterpriseYearlyPriceId,
         ];
 
         logger.info("All required environment variables are set");

@@ -88,6 +88,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       yearly: config.stripe.proYearlyPriceId,
       coaching_monthly: config.stripe.coachingMonthlyPriceId,
       coaching_yearly: config.stripe.coachingYearlyPriceId,
+      team_small_monthly: config.stripe.teamSmallMonthlyPriceId,
+      team_small_yearly: config.stripe.teamSmallYearlyPriceId,
+      team_standard_monthly: config.stripe.teamStandardMonthlyPriceId,
+      team_standard_yearly: config.stripe.teamStandardYearlyPriceId,
+      team_enterprise_monthly: config.stripe.teamEnterpriseMonthlyPriceId,
+      team_enterprise_yearly: config.stripe.teamEnterpriseYearlyPriceId,
     };
     const priceId = PRICE_MAP[plan] ?? config.stripe.proMonthlyPriceId;
 
