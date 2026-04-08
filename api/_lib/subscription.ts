@@ -2,6 +2,7 @@
 
 import { AuthenticatedUser, supabaseAdmin } from "./supabase.js";
 import { isAcademiaEmail } from "./academia.js";
+import { getActiveGroupSubscription } from "./group.js";
 import { logger } from "./logger.js";
 
 export async function checkSubscription(user: AuthenticatedUser): Promise<boolean> {
@@ -17,7 +18,13 @@ export async function checkSubscription(user: AuthenticatedUser): Promise<boolea
         return true;
     }
 
-    // 2. Academia check as fallback
+    // 2. グループ所属チェック: ownerのサブスクが有効ならメンバーにもアクセス権を付与
+    const groupSub = await getActiveGroupSubscription(user.id);
+    if (groupSub) {
+        return true;
+    }
+
+    // 3. Academia check as fallback
     // アカデミア会員（無料付与）判定
     // DBに有効なサブスクリプションがない、かつ大学ドメインの場合に付与
     if (user.email && (await isAcademiaEmail(user.email))) {

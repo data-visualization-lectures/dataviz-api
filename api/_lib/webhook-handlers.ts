@@ -67,6 +67,53 @@ export async function handleCheckoutCompleted(
     } catch (error) {
         logger.error("checkout.session.completed upsert error:", error);
     }
+
+    // チームプラン決済時: グループを自動作成
+    if (planId?.startsWith("team_") && subscriptionId) {
+        try {
+            // 冪等性チェック: 同じsubscription_idで既にグループが存在すればスキップ
+            const { data: existing } = await supabaseAdmin
+                .from("groups")
+                .select("id")
+                .eq("stripe_subscription_id", subscriptionId)
+                .maybeSingle();
+
+            if (!existing) {
+                // display_nameを取得してグループ名に使用
+                const { data: profile } = await supabaseAdmin
+                    .from("profiles")
+                    .select("display_name")
+                    .eq("id", userId)
+                    .maybeSingle();
+                const groupName = profile?.display_name
+                    ? `${profile.display_name} のチーム`
+                    : "新規チーム";
+
+                const maxSeats = planId.includes("small") ? 5 : planId.includes("standard") ? 10 : 30;
+
+                const { data: group, error: groupError } = await supabaseAdmin
+                    .from("groups")
+                    .insert({
+                        name: groupName,
+                        max_seats: maxSeats,
+                        stripe_subscription_id: subscriptionId,
+                    })
+                    .select()
+                    .single();
+
+                if (groupError) {
+                    logger.error("checkout.session.completed: group creation failed", groupError);
+                } else if (group) {
+                    await supabaseAdmin
+                        .from("group_members")
+                        .insert({ group_id: group.id, user_id: userId, role: "owner" });
+                    logger.info("Group created via checkout", { groupId: group.id, userId, planId });
+                }
+            }
+        } catch (err) {
+            logger.error("checkout.session.completed: group auto-creation error", err);
+        }
+    }
 }
 
 /**

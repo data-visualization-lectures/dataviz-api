@@ -13,6 +13,7 @@ import {
 } from "../_lib/projects-storage.js";
 import { requireAuth, requireSubscription } from "../_lib/auth-guards.js";
 import { config } from "../_lib/config.js";
+import { getUserGroupIds } from "../_lib/group.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -33,19 +34,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const hasSubscription = await requireSubscription(req, res, user);
         if (!hasSubscription) return;
 
-        // GET: パブリックプロジェクトも読み取り可能
+        // GET: パブリックプロジェクト・グループプロジェクトも読み取り可能
         if (req.method === "GET") {
             const publicUserId = config.publicProjects.userId;
+            const userGroupIds = await getUserGroupIds(user.id);
+
             let query = supabaseAdmin
                 .from("projects")
                 .select("*")
                 .eq("id", id);
 
+            const orConditions = [`user_id.eq.${user.id}`];
             if (publicUserId) {
-                query = query.or(`user_id.eq.${user.id},user_id.eq.${publicUserId}`);
-            } else {
-                query = query.eq("user_id", user.id);
+                orConditions.push(`user_id.eq.${publicUserId}`);
             }
+            if (userGroupIds.length > 0) {
+                orConditions.push(`group_id.in.(${userGroupIds.join(",")})`);
+            }
+            query = query.or(orConditions.join(","));
 
             const { data: project, error: fetchError } = await query.single();
 

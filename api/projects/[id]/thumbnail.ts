@@ -5,6 +5,7 @@ import { getUserFromRequest, supabaseAdmin } from "../../_lib/supabase.js";
 import { checkSubscription } from "../../_lib/subscription.js";
 import { logger } from "../../_lib/logger.js";
 import { config } from "../../_lib/config.js";
+import { getUserGroupIds } from "../../_lib/group.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (handleCorsAndMethods(req, res, ["GET"])) {
@@ -28,16 +29,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const publicUserId = config.publicProjects.userId;
+        const userGroupIds = await getUserGroupIds(user.id);
+
         let query = supabaseAdmin
             .from("projects")
             .select("thumbnail_path")
             .eq("id", id);
 
+        const orConditions = [`user_id.eq.${user.id}`];
         if (publicUserId) {
-            query = query.or(`user_id.eq.${user.id},user_id.eq.${publicUserId}`);
-        } else {
-            query = query.eq("user_id", user.id);
+            orConditions.push(`user_id.eq.${publicUserId}`);
         }
+        if (userGroupIds.length > 0) {
+            orConditions.push(`group_id.in.(${userGroupIds.join(",")})`);
+        }
+        query = query.or(orConditions.join(","));
 
         const { data: project, error: fetchError } = await query.single();
 

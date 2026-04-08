@@ -6,6 +6,7 @@ import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { isAcademiaEmail } from "./_lib/academia.js";
 import { logger } from "./_lib/logger.js";
 import { expireSubscriptionIfNeeded } from "./_lib/subscription-expiry.js";
+import { getUserGroups, getActiveGroupSubscription } from "./_lib/group.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -103,10 +104,29 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
+    // グループ所属チェック: ownerのサブスクが有効ならメンバーにもactive権限を付与
+    if (!finalSubscription || (finalSubscription as any).status !== "active") {
+      const groupSub = await getActiveGroupSubscription(user.id);
+      if (groupSub) {
+        finalSubscription = {
+          user_id: user.id,
+          status: "active",
+          plan_id: "team_member",
+          current_period_end: groupSub.current_period_end,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        } as any;
+      }
+    }
+
+    // グループ情報を取得
+    const groups = await getUserGroups(user.id);
+
     return res.status(200).json({
       user: { id: user.id, email: user.email },
       profile,
       subscription: finalSubscription,
+      groups,
     });
   } catch (err: any) {
     logger.error("me handler error", err);

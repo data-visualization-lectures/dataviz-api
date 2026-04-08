@@ -13,6 +13,7 @@ import {
     uploadThumbnail,
     fileExists,
 } from "./_lib/projects-storage.js";
+import { getUserGroupIds, getLeaderGroupIds } from "./_lib/group.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -59,6 +60,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(200).json({ projects });
             }
 
+            // source=group: グループプロジェクト一覧
+            if (source === "group") {
+                const groupIds = await getUserGroupIds(user.id);
+                if (groupIds.length === 0) {
+                    return res.status(200).json({ projects: [] });
+                }
+
+                let query = supabaseAdmin
+                    .from("projects")
+                    .select("id, name, app_name, thumbnail_path, user_id, created_at, updated_at")
+                    .in("group_id", groupIds)
+                    .not("group_id", "is", null);
+
+                const appName = req.query.app as string | undefined;
+                if (appName) {
+                    query = query.eq("app_name", appName);
+                }
+
+                const { data: projects, error } = await query.order("updated_at", { ascending: false });
+
+                if (error) {
+                    logger.error("Failed to fetch group projects", error, { userId: user.id });
+                    throw error;
+                }
+
+                return res.status(200).json({ projects: projects ?? [] });
+            }
+
             // 従来: 自分のプロジェクト一覧
             const appName = req.query.app as string;
             if (!appName) {
@@ -82,10 +111,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         // POST: プロジェクト新規保存
         if (req.method === "POST") {
-            const { name, app_name, data, thumbnail, storage_uploaded, storage_path, project_id } = req.body;
+            const { name, app_name, data, thumbnail, storage_uploaded, storage_path, project_id, group_id } = req.body;
 
             if (!name || !app_name) {
                 return res.status(400).json({ error: "missing_required_fields" });
+            }
+
+            // group_id が指定された場合、ユーザーがそのグループのownerであることを検証
+            let validatedGroupId: string | null = null;
+            if (group_id) {
+                const leaderGroups = await getLeaderGroupIds(user.id);
+                if (!leaderGroups.includes(group_id)) {
+                    return res.status(403).json({ error: "not_group_owner" });
+                }
+                validatedGroupId = group_id;
             }
 
             let projectUuid: string;
@@ -148,6 +187,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     storage_path: storagePath,
                     thumbnail_path: thumbnailPath,
                     app_name,
+                    group_id: validatedGroupId,
                 })
                 .select()
                 .single();

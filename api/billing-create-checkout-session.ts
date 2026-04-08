@@ -34,7 +34,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // 既にアクティブな購読がある場合は Checkout へ進ませない
-    if (sub?.status === "active") {
+    // ただしチームプランへのアップグレードは許可する
+    const { plan } = req.body ?? {};
+    if (sub?.status === "active" && !plan?.startsWith("team_")) {
       return res.status(200).json({
         error: "already_subscribed",
         redirect_url: `${config.frontend.baseUrl}/account`
@@ -81,8 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // リクエストボディから plan を取得（デフォルト: 月額）
-    const { plan } = req.body ?? {};
+    // PRICE_MAP（planは上方で取得済み）
     const PRICE_MAP: Record<string, string> = {
       monthly: config.stripe.proMonthlyPriceId,
       yearly: config.stripe.proYearlyPriceId,
