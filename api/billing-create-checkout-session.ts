@@ -35,7 +35,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // 既にアクティブな購読がある場合は Checkout へ進ませない
     // ただしチームプランへのアップグレードは許可する
-    const { plan } = req.body ?? {};
+    const { plan, currency } = req.body ?? {};
+    const isUsd = currency === "usd";
     if (sub?.status === "active" && !plan?.startsWith("team_")) {
       return res.status(200).json({
         error: "already_subscribed",
@@ -84,7 +85,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // PRICE_MAP（planは上方で取得済み）
-    const PRICE_MAP: Record<string, string> = {
+    // coachingプランは日本限定のためUSD版なし
+    const PRICE_MAP_JPY: Record<string, string> = {
       monthly: config.stripe.proMonthlyPriceId,
       yearly: config.stripe.proYearlyPriceId,
       coaching_monthly: config.stripe.coachingMonthlyPriceId,
@@ -96,7 +98,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       team_enterprise_monthly: config.stripe.teamEnterpriseMonthlyPriceId,
       team_enterprise_yearly: config.stripe.teamEnterpriseYearlyPriceId,
     };
-    const priceId = PRICE_MAP[plan] ?? config.stripe.proMonthlyPriceId;
+    const PRICE_MAP_USD: Record<string, string> = {
+      monthly: config.stripe.proMonthlyUsdPriceId,
+      yearly: config.stripe.proYearlyUsdPriceId,
+      team_small_monthly: config.stripe.teamSmallMonthlyUsdPriceId,
+      team_small_yearly: config.stripe.teamSmallYearlyUsdPriceId,
+      team_standard_monthly: config.stripe.teamStandardMonthlyUsdPriceId,
+      team_standard_yearly: config.stripe.teamStandardYearlyUsdPriceId,
+      team_enterprise_monthly: config.stripe.teamEnterpriseMonthlyUsdPriceId,
+      team_enterprise_yearly: config.stripe.teamEnterpriseYearlyUsdPriceId,
+    };
+    const priceMap = isUsd ? PRICE_MAP_USD : PRICE_MAP_JPY;
+    const priceId = priceMap[plan] ?? PRICE_MAP_JPY[plan] ?? config.stripe.proMonthlyPriceId;
 
     // Checkout セッション作成
     const session = await stripe.checkout.sessions.create({
