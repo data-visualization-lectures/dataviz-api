@@ -76,7 +76,7 @@ export async function createSignedUploadUrl(
 ): Promise<{ signedUrl: string | null; error: unknown | null }> {
   const { data, error } = await supabaseAdmin.storage
     .from(STORAGE_BUCKET)
-    .createSignedUploadUrl(storagePath);
+    .createSignedUploadUrl(storagePath, { upsert: true });
 
   if (error || !data) {
     return { signedUrl: null, error: error ?? new Error("No signed URL returned") };
