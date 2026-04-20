@@ -25,13 +25,40 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const user = await requireAuth(req, res);
         if (!user) return;
 
-        // サブスクリプションチェック
-        const hasSubscription = await requireSubscription(req, res, user);
-        if (!hasSubscription) return;
+        // 閲覧系(GET)は認証のみ。書き込み系(POST)は課金必須。
+        if (req.method !== "GET") {
+            const hasSubscription = await requireSubscription(req, res, user);
+            if (!hasSubscription) return;
+        }
+
+        const SELECT_COLUMNS =
+            "id, name, app_name, thumbnail_path, storage_path, user_id, group_id, created_at, updated_at";
 
         // GET: プロジェクト一覧取得
         if (req.method === "GET") {
+            const mode = req.query.mode as string | undefined;
             const source = req.query.source as string | undefined;
+            const appName = req.query.app as string | undefined;
+
+            // mode=count: 自分のプロジェクト件数（app フィルタ任意）
+            if (mode === "count") {
+                let countQuery = supabaseAdmin
+                    .from("projects")
+                    .select("*", { count: "exact", head: true })
+                    .eq("user_id", user.id);
+
+                if (appName) {
+                    countQuery = countQuery.eq("app_name", appName);
+                }
+
+                const { count, error } = await countQuery;
+                if (error) {
+                    logger.error("Failed to count projects", error, { userId: user.id });
+                    throw error;
+                }
+
+                return res.status(200).json({ count: count ?? 0 });
+            }
 
             // source=public: パブリックプロジェクト一覧（app フィルタ任意）
             if (source === "public") {
@@ -42,10 +69,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 let query = supabaseAdmin
                     .from("projects")
-                    .select("id, name, app_name, thumbnail_path, created_at, updated_at")
+                    .select(SELECT_COLUMNS)
                     .eq("user_id", publicUserId);
 
-                const appName = req.query.app as string | undefined;
                 if (appName) {
                     query = query.eq("app_name", appName);
                 }
@@ -57,7 +83,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     throw error;
                 }
 
-                return res.status(200).json({ projects });
+                return res.status(200).json({ projects: projects ?? [] });
             }
 
             // source=group: グループプロジェクト一覧
@@ -69,11 +95,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
                 let query = supabaseAdmin
                     .from("projects")
-                    .select("id, name, app_name, thumbnail_path, user_id, created_at, updated_at")
+                    .select(SELECT_COLUMNS)
                     .in("group_id", groupIds)
                     .not("group_id", "is", null);
 
-                const appName = req.query.app as string | undefined;
                 if (appName) {
                     query = query.eq("app_name", appName);
                 }
@@ -88,25 +113,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 return res.status(200).json({ projects: projects ?? [] });
             }
 
-            // 従来: 自分のプロジェクト一覧
-            const appName = req.query.app as string;
-            if (!appName) {
-                return res.status(400).json({ error: "missing_app_name" });
+            // 自分のプロジェクト一覧（app 未指定時は全 app を返す）
+            let query = supabaseAdmin
+                .from("projects")
+                .select(SELECT_COLUMNS)
+                .eq("user_id", user.id);
+
+            if (appName) {
+                query = query.eq("app_name", appName);
             }
 
-            const { data: projects, error } = await supabaseAdmin
-                .from("projects")
-                .select("id, name, app_name, thumbnail_path, created_at, updated_at")
-                .eq("user_id", user.id)
-                .eq("app_name", appName)
-                .order("updated_at", { ascending: false });
+            const { data: projects, error } = await query.order("updated_at", { ascending: false });
 
             if (error) {
                 logger.error("Failed to fetch projects", error, { userId: user.id, appName });
                 throw error;
             }
 
-            return res.status(200).json({ projects });
+            return res.status(200).json({ projects: projects ?? [] });
         }
 
         // POST: プロジェクト新規保存
