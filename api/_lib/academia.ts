@@ -45,9 +45,31 @@ async function getAcademiaDomains(): Promise<string[]> {
 
 /**
  * 指定されたメールアドレスがアカデミアドメインに属するかを判定する。
+ *
+ * サポートするドメインパターン:
+ * - `*@example.com`    — ドメイン完全一致
+ * - `*@*.example.com`  — 任意のサブドメイン（`example.com` 自体は含まない）
+ * - `@example.com`     — 既存形式（後方互換・末尾一致）
  */
 export async function isAcademiaEmail(email: string): Promise<boolean> {
     if (!email) return false;
-    const domains = await getAcademiaDomains();
-    return domains.some((domain) => email.endsWith(domain));
+    const normalized = email.toLowerCase();
+    const atIdx = normalized.lastIndexOf("@");
+    if (atIdx < 0) return false;
+    const emailDomain = normalized.substring(atIdx + 1);
+    const patterns = await getAcademiaDomains();
+    return patterns.some((pattern) =>
+        matchDomainPattern(pattern.toLowerCase(), normalized, emailDomain)
+    );
+}
+
+function matchDomainPattern(pattern: string, email: string, emailDomain: string): boolean {
+    if (pattern.startsWith("*@*.")) {
+        const suffix = pattern.substring(3);
+        return emailDomain.endsWith(suffix) && emailDomain.length > suffix.length;
+    }
+    if (pattern.startsWith("*@")) {
+        return emailDomain === pattern.substring(2);
+    }
+    return email.endsWith(pattern);
 }
