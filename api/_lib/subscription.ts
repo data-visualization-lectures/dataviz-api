@@ -9,13 +9,24 @@ export async function checkSubscription(user: AuthenticatedUser): Promise<boolea
     // 1. Check DB for active/trialing subscription
     const { data: subscription, error } = await supabaseAdmin
         .from("subscriptions")
-        .select("status")
+        .select("status, current_period_end")
         .eq("user_id", user.id)
         .in("status", ["active", "trialing"])
         .maybeSingle();
 
     if (subscription) {
-        return true;
+        if (subscription.status === "trialing") {
+            const periodEnd = subscription.current_period_end
+                ? new Date(subscription.current_period_end)
+                : null;
+            if (periodEnd && periodEnd >= new Date()) {
+                return true;
+            }
+            // 期限切れの trialing はアクセス不可 → 以降のチェックへ
+        } else {
+            // active
+            return true;
+        }
     }
 
     // 2. グループ所属チェック: ownerのサブスクが有効ならメンバーにもアクセス権を付与

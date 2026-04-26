@@ -24,13 +24,15 @@ export function shouldExpireSubscription(
         return false;
     }
 
+    // trialing は current_period_end が必須。null は設定ミスなので即期限切れとみなす
+    if (subscription.status === "trialing") {
+        const periodEnd = parsePeriodEnd(subscription);
+        return !periodEnd || periodEnd < now;
+    }
+
     const periodEnd = parsePeriodEnd(subscription);
     if (!periodEnd || periodEnd >= now) {
         return false;
-    }
-
-    if (subscription.status === "trialing") {
-        return true;
     }
 
     return subscription.cancel_at_period_end === true;
