@@ -134,11 +134,21 @@ export async function handleSubscriptionUpdated(
     }
 
     const status = mapStripeStatus(subscription.status);
-    const currentPeriodEnd = toIso(subscription.current_period_end) ?? undefined;
+    let currentPeriodEnd = toIso(subscription.current_period_end) ?? undefined;
     const cancelAtPeriodEnd = subscription.cancel_at_period_end;
     logger.info(
-        `[Webhook] subscription.updated: subId=${subscription.id}, status=${status}, cancelAtPeriodEnd=${cancelAtPeriodEnd}`
+        `[Webhook] subscription.updated: subId=${subscription.id}, status=${status}, cancelAtPeriodEnd=${cancelAtPeriodEnd}, current_period_end=${subscription.current_period_end}`
     );
+    // イベントオブジェクトのcurrent_period_endがnullの場合はStripe APIから直接取得
+    if (!currentPeriodEnd) {
+        try {
+            const freshSub = await stripe.subscriptions.retrieve(subscription.id);
+            currentPeriodEnd = toIso(freshSub.current_period_end) ?? undefined;
+            logger.info(`[Webhook] subscription.updated: retrieved fresh current_period_end=${freshSub.current_period_end}`);
+        } catch (err) {
+            logger.error("subscription.updated: retrieve subscription for period_end failed", err as Error);
+        }
+    }
     const priceId = subscription.items.data[0]?.price?.id;
     const planId = await resolvePlanId(supabaseAdmin, priceId);
 
