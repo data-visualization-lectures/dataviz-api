@@ -46,8 +46,9 @@ export async function getLeaderGroupIds(userId: string): Promise<string[]> {
 }
 
 /**
- * ユーザーが所属するグループのownerにactiveなサブスクがあるか確認し、
- * あればそのサブスク情報を返す
+ * ユーザーが所属するグループの owner に
+ * 「active かつ team_* プラン」のサブスクがあるか確認し、
+ * あればそのサブスク情報を返す。
  */
 export async function getActiveGroupSubscription(userId: string): Promise<
     { current_period_end: string | null } | null
@@ -73,12 +74,13 @@ export async function getActiveGroupSubscription(userId: string): Promise<
 
     const ownerIds = [...new Set(owners.map((o) => o.user_id))];
 
-    // ownerのサブスクがactiveかチェック
+    // owner のサブスクが active かつ team_* プランかチェック
     const { data: subscription } = await supabaseAdmin
         .from("subscriptions")
-        .select("status, current_period_end")
+        .select("status, current_period_end, plan_id")
         .in("user_id", ownerIds)
-        .in("status", ["active", "trialing"])
+        .eq("status", "active")
+        .like("plan_id", "team_%")
         .limit(1)
         .maybeSingle();
 
