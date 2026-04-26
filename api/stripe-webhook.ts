@@ -37,7 +37,7 @@ async function readRawBody(req: VercelRequest): Promise<Buffer> {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  logger.info("[Webhook] Handler invoked. Method:", req.method);
+  logger.info("[Webhook] Handler invoked", { method: req.method });
 
   if (req.method !== "POST") {
     return res.status(405).end();

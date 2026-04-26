@@ -28,10 +28,34 @@ interface LogEntry {
     };
 }
 
+function normalizeError(error: unknown): LogEntry["error"] | undefined {
+    if (!error) {
+        return undefined;
+    }
+
+    if (error instanceof Error) {
+        return {
+            message: error.message,
+            name: error.name,
+            stack: error.stack,
+        };
+    }
+
+    if (typeof error === "string") {
+        return { message: error };
+    }
+
+    try {
+        return { message: JSON.stringify(error) };
+    } catch {
+        return { message: String(error) };
+    }
+}
+
 /**
  * ログを出力する内部関数
  */
-function log(level: LogLevel, message: string, metadata?: LogMetadata, error?: Error): void {
+function log(level: LogLevel, message: string, metadata?: LogMetadata, error?: unknown): void {
     const entry: LogEntry = {
         level,
         message,
@@ -42,12 +66,9 @@ function log(level: LogLevel, message: string, metadata?: LogMetadata, error?: E
         entry.metadata = metadata;
     }
 
-    if (error) {
-        entry.error = {
-            message: error.message,
-            name: error.name,
-            stack: error.stack,
-        };
+    const normalizedError = normalizeError(error);
+    if (normalizedError) {
+        entry.error = normalizedError;
     }
 
     const output = JSON.stringify(entry);
@@ -98,7 +119,7 @@ export const logger = {
      * エラーレベルのログ
      * エラーが発生し、処理が失敗した状況
      */
-    error(message: string, error?: Error, metadata?: LogMetadata): void {
+    error(message: string, error?: unknown, metadata?: LogMetadata): void {
         log("error", message, metadata, error);
     },
 };
@@ -118,7 +139,7 @@ export function createContextLogger(context: LogMetadata) {
         warn(message: string, metadata?: LogMetadata): void {
             logger.warn(message, { ...context, ...metadata });
         },
-        error(message: string, error?: Error, metadata?: LogMetadata): void {
+        error(message: string, error?: unknown, metadata?: LogMetadata): void {
             logger.error(message, error, { ...context, ...metadata });
         },
     };
