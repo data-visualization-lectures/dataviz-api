@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "type": "module",
   "scripts": {
-    "dev:test": "USE_ENV_FILE=.env.test vercel dev --listen 3001"
+    "dev:test": "USE_ENV_FILE=.env.test vercel dev --listen 3001",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "lint": "npm run typecheck"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.0",
@@ -12,6 +14,9 @@
     "stripe": "^16.0.0"
   },
   "devDependencies": {
-    "dotenv-cli": "^11.0.0"
+    "@types/node": "^25.6.0",
+    "@vercel/node": "^5.7.13",
+    "dotenv-cli": "^11.0.0",
+    "typescript": "^6.0.3"
   }
 }
