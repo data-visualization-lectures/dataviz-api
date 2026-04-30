@@ -5,9 +5,34 @@ import { createStripeClient } from "./_lib/stripe.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { config } from "./_lib/config.js";
 import { logger } from "./_lib/logger.js";
+import {
+  resolveCheckoutPlanSelection,
+  type StoredBillablePlanId,
+} from "./_lib/plan-catalog.js";
 
 // ================== Stripe クライアント ==================
 const stripe = createStripeClient();
+
+const STRIPE_PRICE_IDS_BY_PLAN_ID: Record<StoredBillablePlanId, string> = {
+  pro_monthly: config.stripe.proMonthlyPriceId,
+  pro_yearly: config.stripe.proYearlyPriceId,
+  coaching_monthly: config.stripe.coachingMonthlyPriceId,
+  coaching_yearly: config.stripe.coachingYearlyPriceId,
+  team_small_monthly: config.stripe.teamSmallMonthlyPriceId,
+  team_small_yearly: config.stripe.teamSmallYearlyPriceId,
+  team_standard_monthly: config.stripe.teamStandardMonthlyPriceId,
+  team_standard_yearly: config.stripe.teamStandardYearlyPriceId,
+  team_enterprise_monthly: config.stripe.teamEnterpriseMonthlyPriceId,
+  team_enterprise_yearly: config.stripe.teamEnterpriseYearlyPriceId,
+  pro_monthly_usd: config.stripe.proMonthlyUsdPriceId,
+  pro_yearly_usd: config.stripe.proYearlyUsdPriceId,
+  team_small_monthly_usd: config.stripe.teamSmallMonthlyUsdPriceId,
+  team_small_yearly_usd: config.stripe.teamSmallYearlyUsdPriceId,
+  team_standard_monthly_usd: config.stripe.teamStandardMonthlyUsdPriceId,
+  team_standard_yearly_usd: config.stripe.teamStandardYearlyUsdPriceId,
+  team_enterprise_monthly_usd: config.stripe.teamEnterpriseMonthlyUsdPriceId,
+  team_enterprise_yearly_usd: config.stripe.teamEnterpriseYearlyUsdPriceId,
+};
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -36,8 +61,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 既にアクティブな購読がある場合は Checkout へ進ませない
     // ただしチームプランへのアップグレードは許可する
     const { plan, currency } = req.body ?? {};
-    const isUsd = currency === "usd";
-    if (sub?.status === "active" && !plan?.startsWith("team_")) {
+    const resolvedPlan = resolveCheckoutPlanSelection(plan, currency);
+    if (!resolvedPlan) {
+      return res.status(400).json({ error: "invalid_plan" });
+    }
+
+    if (sub?.status === "active" && !resolvedPlan.isTeamPlan) {
       return res.status(200).json({
         error: "already_subscribed",
         redirect_url: `${config.frontend.baseUrl}/account`
@@ -84,32 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // PRICE_MAP（planは上方で取得済み）
-    // coachingプランは日本限定のためUSD版なし
-    const PRICE_MAP_JPY: Record<string, string> = {
-      monthly: config.stripe.proMonthlyPriceId,
-      yearly: config.stripe.proYearlyPriceId,
-      coaching_monthly: config.stripe.coachingMonthlyPriceId,
-      coaching_yearly: config.stripe.coachingYearlyPriceId,
-      team_small_monthly: config.stripe.teamSmallMonthlyPriceId,
-      team_small_yearly: config.stripe.teamSmallYearlyPriceId,
-      team_standard_monthly: config.stripe.teamStandardMonthlyPriceId,
-      team_standard_yearly: config.stripe.teamStandardYearlyPriceId,
-      team_enterprise_monthly: config.stripe.teamEnterpriseMonthlyPriceId,
-      team_enterprise_yearly: config.stripe.teamEnterpriseYearlyPriceId,
-    };
-    const PRICE_MAP_USD: Record<string, string> = {
-      monthly: config.stripe.proMonthlyUsdPriceId,
-      yearly: config.stripe.proYearlyUsdPriceId,
-      team_small_monthly: config.stripe.teamSmallMonthlyUsdPriceId,
-      team_small_yearly: config.stripe.teamSmallYearlyUsdPriceId,
-      team_standard_monthly: config.stripe.teamStandardMonthlyUsdPriceId,
-      team_standard_yearly: config.stripe.teamStandardYearlyUsdPriceId,
-      team_enterprise_monthly: config.stripe.teamEnterpriseMonthlyUsdPriceId,
-      team_enterprise_yearly: config.stripe.teamEnterpriseYearlyUsdPriceId,
-    };
-    const priceMap = isUsd ? PRICE_MAP_USD : PRICE_MAP_JPY;
-    const priceId = priceMap[plan] ?? PRICE_MAP_JPY[plan] ?? config.stripe.proMonthlyPriceId;
+    const priceId = STRIPE_PRICE_IDS_BY_PLAN_ID[resolvedPlan.planId];
 
     // Checkout セッション作成
     const session = await stripe.checkout.sessions.create({
@@ -125,11 +129,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cancel_url: `${config.frontend.baseUrl}/billing/cancel`,
       subscription_data: {
         metadata: {
-          user_id: user.id
+          user_id: user.id,
+          plan_id: resolvedPlan.planId,
+          canonical_plan_id: resolvedPlan.canonicalPlanId,
         }
       },
       metadata: {
-        user_id: user.id
+        user_id: user.id,
+        plan_id: resolvedPlan.planId,
+        canonical_plan_id: resolvedPlan.canonicalPlanId,
       }
     });
 

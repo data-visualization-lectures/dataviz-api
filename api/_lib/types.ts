@@ -57,7 +57,9 @@ export interface ProfileRecord {
 export interface PlanRecord {
   id: string;
   stripe_price_id: string;
+  canonical_plan_id?: string | null;
   name: string;
+  name_en?: string | null;
   description?: string | null;
   amount?: number | null;
   currency?: string | null;

@@ -38,20 +38,24 @@ export async function handleCheckoutCompleted(
     let currentPeriodEnd: string | null | undefined = undefined;
     let cancelAtPeriodEnd: boolean | null = false;
     let planId: string | undefined = undefined;
+    let stripeSubscription: Stripe.Subscription | null = null;
 
     if (subscriptionId) {
         try {
-            const subscription = await stripe.subscriptions.retrieve(subscriptionId);
-            status = mapStripeStatus(subscription.status);
-            currentPeriodEnd = toIso(subscription.current_period_end) ?? undefined;
-            cancelAtPeriodEnd = subscription.cancel_at_period_end;
-            const priceId =
-                subscription.items.data[0]?.price?.id ??
-                (session?.line_items as any)?.data?.[0]?.price?.id;
-            planId = await resolvePlanId(supabaseAdmin, priceId);
+            stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+            status = mapStripeStatus(stripeSubscription.status);
+            currentPeriodEnd = toIso(stripeSubscription.current_period_end) ?? undefined;
+            cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end;
         } catch (err) {
             logger.error("checkout.session.completed: retrieve subscription failed", err);
         }
+    }
+
+    if (stripeSubscription || session?.line_items) {
+        const priceId =
+                stripeSubscription?.items.data[0]?.price?.id ??
+                (session?.line_items as any)?.data?.[0]?.price?.id;
+        planId = await resolvePlanId(supabaseAdmin, priceId);
     }
 
     try {
