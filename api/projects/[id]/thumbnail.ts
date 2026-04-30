@@ -2,10 +2,11 @@ import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Buffer } from "node:buffer";
 import { handleCorsAndMethods } from "../../_lib/http.js";
 import { getUserFromRequest, supabaseAdmin } from "../../_lib/supabase.js";
-import { checkSubscription } from "../../_lib/subscription.js";
+import { requireSubscription } from "../../_lib/auth-guards.js";
 import { logger } from "../../_lib/logger.js";
 import { config } from "../../_lib/config.js";
 import { getUserGroupIds } from "../../_lib/group.js";
+import { resolveAppNameFromRequest } from "../../_lib/request-app-context.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (handleCorsAndMethods(req, res, ["GET"])) {
@@ -23,9 +24,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(401).json({ error: "not_authenticated" });
         }
 
-        const hasSubscription = await checkSubscription(user);
+        const hasSubscription = await requireSubscription(req, res, user, {
+            appName: resolveAppNameFromRequest(req),
+            source: "project-thumbnail",
+        });
         if (!hasSubscription) {
-            return res.status(403).json({ error: "subscription_required" });
+            return;
         }
 
         const publicUserId = config.publicProjects.userId;

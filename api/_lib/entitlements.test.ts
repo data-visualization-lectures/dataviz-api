@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  hasAccessibleScope,
   isSubscribedStatus,
   resolveAccessibleScopes,
   resolveEntitlements,
@@ -35,14 +36,30 @@ test("accessible scopes stay shared while compatibility mode is active", () => {
   assert.deepEqual(
     resolveAccessibleScopes({
       subscription: { status: "active" },
+      planScope: null,
     }),
     ["viz", "prep"],
   );
   assert.deepEqual(
     resolveAccessibleScopes({
       subscription: { status: "canceled" },
+      planScope: null,
     }),
     [],
+  );
+  assert.deepEqual(
+    resolveAccessibleScopes({
+      subscription: { status: "active" },
+      planScope: "viz",
+    }),
+    ["viz"],
+  );
+  assert.deepEqual(
+    resolveAccessibleScopes({
+      subscription: { status: "active" },
+      planScope: "prep",
+    }),
+    ["prep"],
   );
 });
 
@@ -69,5 +86,32 @@ test("resolveEntitlements keeps unsubscribed users out while preserving scope me
       subscriptionScope: "bundle",
       accessibleScopes: [],
     },
+  );
+});
+
+test("hasAccessibleScope allows bundle and matching scoped access", () => {
+  assert.equal(
+    hasAccessibleScope({
+      requiredScope: "viz",
+      subscriptionScope: "bundle",
+      accessibleScopes: ["viz", "prep"],
+    }),
+    true,
+  );
+  assert.equal(
+    hasAccessibleScope({
+      requiredScope: "viz",
+      subscriptionScope: "viz",
+      accessibleScopes: ["viz"],
+    }),
+    true,
+  );
+  assert.equal(
+    hasAccessibleScope({
+      requiredScope: "prep",
+      subscriptionScope: "viz",
+      accessibleScopes: ["viz"],
+    }),
+    false,
   );
 });

@@ -11,6 +11,7 @@ import {
     createSignedUploadUrl,
     MAX_UPLOAD_BYTES,
 } from "./_lib/projects-storage.js";
+import { resolveAppNameFromRequest } from "./_lib/request-app-context.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (handleCorsAndMethods(req, res, ["POST"])) {
@@ -21,7 +22,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const user = await requireAuth(req, res);
         if (!user) return;
 
-        const hasSubscription = await requireSubscription(req, res, user);
+        const hasSubscription = await requireSubscription(req, res, user, {
+            appName: resolveAppNameFromRequest(req),
+            source: "projects-upload-url",
+        });
         if (!hasSubscription) return;
 
         const { project_id, type } = req.body ?? {};

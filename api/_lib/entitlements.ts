@@ -34,10 +34,38 @@ export function resolveSubscriptionScope(params: {
 
 export function resolveAccessibleScopes(params: {
   subscription: Pick<SubscriptionRecord, "status"> | null | undefined;
+  planScope?: ServiceScope | null;
 }): AccessibleScope[] {
-  return isSubscribedStatus(params.subscription?.status)
-    ? [...SHARED_ACCESSIBLE_SCOPES]
-    : [];
+  if (!isSubscribedStatus(params.subscription?.status)) {
+    return [];
+  }
+
+  if (params.planScope === "viz") {
+    return ["viz"];
+  }
+  if (params.planScope === "prep") {
+    return ["prep"];
+  }
+
+  return [...SHARED_ACCESSIBLE_SCOPES];
+}
+
+export function hasAccessibleScope(params: {
+  requiredScope?: AccessibleScope | ServiceScope | null;
+  subscriptionScope?: ServiceScope | null;
+  accessibleScopes?: AccessibleScope[] | null;
+}): boolean {
+  const { requiredScope = null, subscriptionScope = null, accessibleScopes = [] } = params;
+  const normalizedAccessibleScopes = accessibleScopes ?? [];
+  if (!requiredScope) {
+    return true;
+  }
+
+  if (subscriptionScope === "bundle") {
+    return true;
+  }
+
+  return normalizedAccessibleScopes.includes(requiredScope as AccessibleScope);
 }
 
 export function resolveEntitlements(params: {
@@ -50,6 +78,6 @@ export function resolveEntitlements(params: {
   return {
     isSubscribed,
     subscriptionScope: resolveSubscriptionScope({ subscription, planScope }),
-    accessibleScopes: resolveAccessibleScopes({ subscription }),
+    accessibleScopes: resolveAccessibleScopes({ subscription, planScope }),
   };
 }

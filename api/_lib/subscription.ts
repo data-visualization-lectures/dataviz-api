@@ -4,11 +4,30 @@ import { AuthenticatedUser, supabaseAdmin } from "./supabase.js";
 import { isAcademiaEmail } from "./academia.js";
 import { getActiveGroupSubscription } from "./group.js";
 import { logger } from "./logger.js";
-import { resolveEntitlements } from "./entitlements.js";
+import { hasAccessibleScope, resolveEntitlements } from "./entitlements.js";
 import { fetchPlanScope } from "./plans.js";
-import type { SubscriptionRecord } from "./types.js";
+import { resolveRequiredScopeFromApp } from "./app-registry.js";
+import { config } from "./config.js";
+import type { AccessibleScope, ServiceScope, SubscriptionRecord } from "./types.js";
 
-export async function checkSubscription(user: AuthenticatedUser): Promise<boolean> {
+export interface SubscriptionAccessOptions {
+    appName?: string | null;
+    requiredScope?: ServiceScope | AccessibleScope | null;
+}
+
+export interface ResolvedSubscriptionAccess {
+    hasSubscription: boolean;
+    shouldAllow: boolean;
+    scopeAllowed: boolean;
+    requiredScope: ServiceScope | AccessibleScope | null;
+    subscriptionScope: ServiceScope | null;
+    accessibleScopes: AccessibleScope[];
+    subscription: SubscriptionRecord | null;
+}
+
+async function resolveEffectiveSubscription(
+    user: AuthenticatedUser,
+): Promise<SubscriptionRecord | null> {
     // 1. Check DB for active/trialing subscription
     const { data: subscription, error } = await supabaseAdmin
         .from("subscriptions")
@@ -25,21 +44,11 @@ export async function checkSubscription(user: AuthenticatedUser): Promise<boolea
                 : null;
             if (periodEnd && periodEnd >= new Date()) {
                 effectiveSubscription = subscription as SubscriptionRecord;
-                const planScope = await fetchPlanScope(effectiveSubscription.plan_id);
-                return resolveEntitlements({
-                    subscription: effectiveSubscription,
-                    planScope,
-                }).isSubscribed;
             }
             // 期限切れの trialing はアクセス不可 → 以降のチェックへ
         } else {
             // active
             effectiveSubscription = subscription as SubscriptionRecord;
-            const planScope = await fetchPlanScope(effectiveSubscription.plan_id);
-            return resolveEntitlements({
-                subscription: effectiveSubscription,
-                planScope,
-            }).isSubscribed;
         }
     }
 
@@ -71,9 +80,44 @@ export async function checkSubscription(user: AuthenticatedUser): Promise<boolea
         logger.error("checkSubscription error", error as Error, { userId: user.id });
     }
 
+    return effectiveSubscription;
+}
+
+export async function resolveSubscriptionAccess(
+    user: AuthenticatedUser,
+    opts: SubscriptionAccessOptions = {},
+): Promise<ResolvedSubscriptionAccess> {
+    const effectiveSubscription = await resolveEffectiveSubscription(user);
     const planScope = await fetchPlanScope(effectiveSubscription?.plan_id);
-    return resolveEntitlements({
+    const entitlements = resolveEntitlements({
         subscription: effectiveSubscription,
         planScope,
-    }).isSubscribed;
+    });
+    const requiredScope =
+        opts.requiredScope ?? resolveRequiredScopeFromApp(opts.appName);
+    const scopeAllowed = hasAccessibleScope({
+        requiredScope,
+        subscriptionScope: entitlements.subscriptionScope,
+        accessibleScopes: entitlements.accessibleScopes,
+    });
+
+    return {
+        hasSubscription: entitlements.isSubscribed,
+        shouldAllow: entitlements.isSubscribed && (
+            !config.subscription.scopeEnforcementEnabled || scopeAllowed
+        ),
+        scopeAllowed,
+        requiredScope,
+        subscriptionScope: entitlements.subscriptionScope,
+        accessibleScopes: entitlements.accessibleScopes,
+        subscription: effectiveSubscription,
+    };
+}
+
+export async function checkSubscription(
+    user: AuthenticatedUser,
+    opts: SubscriptionAccessOptions = {},
+): Promise<boolean> {
+    const access = await resolveSubscriptionAccess(user, opts);
+    return access.shouldAllow;
 }
