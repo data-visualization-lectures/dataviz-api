@@ -1,7 +1,9 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import type { AuthenticatedUser } from "./types.js";
 import { getUserFromRequest } from "./supabase.js";
-import { checkSubscription } from "./subscription.js";
+import { resolveRequiredScopeFromApp } from "./app-registry.js";
+import { config } from "./config.js";
+import { resolveSubscriptionAccess } from "./subscription.js";
 import { logger } from "./logger.js";
 
 export async function requireAuth(
@@ -21,13 +23,45 @@ export async function requireAuth(
 export async function requireSubscription(
   req: VercelRequest,
   res: VercelResponse,
-  user: AuthenticatedUser
+  user: AuthenticatedUser,
+  opts: {
+    appName?: string | null;
+    requiredScope?: "viz" | "prep" | "bundle" | null;
+    source?: string;
+  } = {},
 ): Promise<boolean> {
-  const hasSubscription = await checkSubscription(user);
-  if (!hasSubscription) {
+  const requiredScope =
+    opts.requiredScope ?? resolveRequiredScopeFromApp(opts.appName);
+  const access = await resolveSubscriptionAccess(user, {
+    appName: opts.appName,
+    requiredScope,
+  });
+
+  if (!access.hasSubscription) {
     logger.info("Subscription required", { userId: user.id, path: req.url });
     res.status(403).json({ error: "subscription_required" });
     return false;
+  }
+
+  if (!access.scopeAllowed) {
+    const metadata = {
+      userId: user.id,
+      path: req.url,
+      appName: opts.appName ?? null,
+      requiredScope,
+      subscriptionScope: access.subscriptionScope,
+      accessibleScopes: access.accessibleScopes,
+      source: opts.source ?? "api",
+      enforcementEnabled: config.subscription.scopeEnforcementEnabled,
+    };
+
+    if (config.subscription.scopeEnforcementEnabled) {
+      logger.info("Scope mismatch blocked", metadata);
+      res.status(403).json({ error: "scope_mismatch" });
+      return false;
+    }
+
+    logger.info("Scope mismatch observed", metadata);
   }
 
   return true;

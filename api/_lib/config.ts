@@ -78,6 +78,12 @@ export const config = {
     publicProjects: {
         userId: getOptionalEnv("PUBLIC_PROJECT_USER_ID", ""),
     },
+
+    // サービス分割設定
+    subscription: {
+        scopeEnforcementEnabled:
+            getOptionalEnv("SUBSCRIPTION_SCOPE_ENFORCEMENT", "false") === "true",
+    },
 } as const;
 
 /**

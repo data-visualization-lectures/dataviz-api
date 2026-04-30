@@ -14,6 +14,7 @@ import {
 import { requireAuth, requireSubscription } from "../_lib/auth-guards.js";
 import { config } from "../_lib/config.js";
 import { getUserGroupIds } from "../_lib/group.js";
+import { resolveAppNameFromRequest } from "../_lib/request-app-context.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -29,9 +30,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const user = await requireAuth(req, res);
         if (!user) return;
+        const requestAppName = resolveAppNameFromRequest(req);
 
         // サブスクリプションチェック
-        const hasSubscription = await requireSubscription(req, res, user);
+        const hasSubscription = await requireSubscription(req, res, user, {
+            appName: requestAppName,
+            source: "projects-detail",
+        });
         if (!hasSubscription) return;
 
         // GET: パブリックプロジェクト・グループプロジェクトも読み取り可能

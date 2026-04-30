@@ -14,6 +14,7 @@ import {
     fileExists,
 } from "./_lib/projects-storage.js";
 import { getUserGroupIds, getLeaderGroupIds } from "./_lib/group.js";
+import { resolveAppNameFromRequest } from "./_lib/request-app-context.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -24,10 +25,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const user = await requireAuth(req, res);
         if (!user) return;
+        const requestAppName = resolveAppNameFromRequest(req);
 
         // 閲覧系(GET)は認証のみ。書き込み系(POST)は課金必須。
         if (req.method !== "GET") {
-            const hasSubscription = await requireSubscription(req, res, user);
+            const hasSubscription = await requireSubscription(req, res, user, {
+                appName: requestAppName,
+                source: "projects",
+            });
             if (!hasSubscription) return;
         }
 
