@@ -7,6 +7,8 @@ import { isAcademiaEmail } from "./_lib/academia.js";
 import { logger } from "./_lib/logger.js";
 import { expireSubscriptionIfNeeded } from "./_lib/subscription-expiry.js";
 import { getUserGroups, getActiveGroupSubscription } from "./_lib/group.js";
+import { resolveEntitlements } from "./_lib/entitlements.js";
+import { fetchPlanScope } from "./_lib/plans.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -78,11 +80,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // DBに有効なサブスクリプションがない、かつ大学ドメインの場合に付与
     let finalSubscription = updatedSubscription;
     if (
-      (!subscription || subscription.status !== "active") &&
+      (!finalSubscription || (finalSubscription as any).status !== "active") &&
       user.email &&
       (await isAcademiaEmail(user.email))
     ) {
-      if (!subscription) {
+      if (!finalSubscription) {
         // 全くレコードがない場合はオブジェクトを捏造
         finalSubscription = {
           user_id: user.id,
@@ -96,7 +98,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         // レコードはあるが active ではない場合 (canceled/past_due 等)
         // academia 権限で上書きして active に見せる
         finalSubscription = {
-          ...subscription,
+          ...finalSubscription,
           status: "active",
           plan_id: "academia",
           current_period_end: null,
@@ -121,12 +123,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // グループ情報を取得
     const groups = await getUserGroups(user.id);
+    const planScope = await fetchPlanScope(finalSubscription?.plan_id);
+    const entitlements = resolveEntitlements({
+      subscription: finalSubscription,
+      planScope,
+    });
 
     return res.status(200).json({
       user: { id: user.id, email: user.email },
       profile,
-      subscription: finalSubscription,
+      subscription: finalSubscription
+        ? {
+            ...finalSubscription,
+            scope: entitlements.subscriptionScope,
+          }
+        : null,
       groups,
+      accessible_scopes: entitlements.accessibleScopes,
     });
   } catch (err: any) {
     logger.error("me handler error", err);

@@ -12,6 +12,10 @@ export type SubscriptionStatus =
   | "incomplete"
   | "trialing";
 
+export type ServiceScope = "viz" | "prep" | "bundle";
+
+export type AccessibleScope = "viz" | "prep";
+
 /**
  * 認証済みユーザー情報
  */
@@ -29,6 +33,7 @@ export interface SubscriptionRecord {
   stripe_customer_id?: string | null;
   stripe_subscription_id?: string | null;
   plan_id?: string | null;
+  scope?: ServiceScope | null;
   status: SubscriptionStatus;
   current_period_end?: string | null;
   cancel_at_period_end?: boolean | null;
@@ -56,6 +61,7 @@ export interface PlanRecord {
   description?: string | null;
   amount?: number | null;
   currency?: string | null;
+  scope?: ServiceScope | null;
 }
 
 /**
@@ -68,6 +74,12 @@ export interface MeResponse {
   };
   profile: ProfileRecord | null;
   subscription: SubscriptionRecord | null;
+  groups?: Array<{
+    group_id: string;
+    role: string;
+    group_name: string;
+  }>;
+  accessible_scopes?: AccessibleScope[];
 }
 
 /**
