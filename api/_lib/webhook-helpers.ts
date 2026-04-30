@@ -5,6 +5,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type Stripe from "stripe";
 import type { SubscriptionStatus } from "./types.js";
 import { logger } from "./logger.js";
+import { fetchPlanRecordByPriceId } from "./plans.js";
 
 /**
  * Unix エポック秒を ISO 8601 文字列に変換
@@ -48,18 +49,14 @@ export async function resolvePlanId(
 ): Promise<string | undefined> {
     if (!priceId) return undefined;
 
-    const { data, error } = await supabaseAdmin
-        .from("plans")
-        .select("id")
-        .eq("stripe_price_id", priceId)
-        .maybeSingle();
-
-    if (error) {
+    const plan = await fetchPlanRecordByPriceId(priceId, supabaseAdmin);
+    if (!plan) {
+        const error = new Error("unknown_plan_price_id");
         logger.error("resolvePlanId failed", error, { priceId });
-        return undefined;
+        throw error;
     }
 
-    return data?.id;
+    return plan.planId;
 }
 
 /**
@@ -130,7 +127,7 @@ export async function upsertSubscription(
         payload.cancel_at_period_end = params.cancelAtPeriodEnd;
     }
     if (params.planId !== undefined) {
-        payload.plan_id = params.planId ?? "pro_monthly";
+        payload.plan_id = params.planId;
     }
 
     const { error } = await supabaseAdmin

@@ -21,7 +21,7 @@ Supabase の `academia_domains` テーブルで管理されている大学ドメ
 
 ## Supabase スキーマ
 - `profiles(id, display_name, created_at, updated_at)`
-- `plans(id, stripe_price_id, name, description, amount, currency)`
+- `plans(id, stripe_price_id, canonical_plan_id, name, description, amount, currency, scope)`
 - `subscription_status` enum: `none | active | past_due | canceled | incomplete | trialing`
 - `subscriptions(id, user_id UNIQUE, stripe_customer_id, stripe_subscription_id, plan_id, status, current_period_end, created_at, updated_at)`
 - `academia_domains(id, domain UNIQUE, university_name, is_active, created_at, updated_at)`
@@ -33,6 +33,7 @@ Supabase の `academia_domains` テーブルで管理されている大学ドメ
 
 - `POST /api/billing-create-checkout-session`  
   - 認証必須。`subscriptions` から `stripe_customer_id` を取得/なければ作成して保存。  
+  - リクエストは従来どおり `{ plan, currency }` を受け付け、内部で legacy alias を実際の `plans.id` に解決する。  
   - `subscriptions.status === "active"` の場合は `200 { error: "already_subscribed", redirect_url: <FRONTEND_BASE_URL>/account }` を返し、Checkoutを作らない。  
   - それ以外はサブスク用 Checkout セッションを作成し `{ url }` を返す。
 
@@ -64,7 +65,8 @@ Supabase の `academia_domains` テーブルで管理されている大学ドメ
   - incomplete_expired/canceled → canceled
   - 未判定 → none
 - `subscription_id` と `current_period_end` は解約後も保持。
-- `plan_id` は Stripe Price ID と `plans.stripe_price_id` の一致で解決。見つからない場合は更新しない（デフォルトは `pro_monthly`）。
+- `plan_id` は Stripe Price ID と `plans.stripe_price_id` の一致で解決し、未解決なら Webhook を失敗させて再試行する。
+- `plans.canonical_plan_id` は USD/JPY や旧 plan alias を同じ契約ファミリーへ束ねるための内部列。phase 2 では `subscriptions.plan_id` 自体は既存値を維持する。
 
 ## 動作確認のヒント
 - Stripe CLI: `stripe listen --forward-to <vercel-endpoint>/api/stripe-webhook`  
