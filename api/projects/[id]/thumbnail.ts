@@ -27,6 +27,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const hasSubscription = await requireSubscription(req, res, user, {
             appName: resolveAppNameFromRequest(req),
             source: "project-thumbnail",
+            enforceScope: false,
         });
         if (!hasSubscription) {
             return;

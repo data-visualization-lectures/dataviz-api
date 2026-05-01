@@ -12,6 +12,7 @@ import {
     MAX_UPLOAD_BYTES,
 } from "./_lib/projects-storage.js";
 import { resolveAppNameFromRequest } from "./_lib/request-app-context.js";
+import { resolveScopedAppName } from "./_lib/scope-enforcement.js";
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (handleCorsAndMethods(req, res, ["POST"])) {
@@ -21,12 +22,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     try {
         const user = await requireAuth(req, res);
         if (!user) return;
-
-        const hasSubscription = await requireSubscription(req, res, user, {
-            appName: resolveAppNameFromRequest(req),
-            source: "projects-upload-url",
-        });
-        if (!hasSubscription) return;
+        const requestAppName = resolveAppNameFromRequest(req);
 
         const { project_id, type } = req.body ?? {};
 
@@ -34,14 +30,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             return res.status(400).json({ error: "missing_or_invalid_type", detail: "type must be 'data' or 'thumbnail'" });
         }
 
+        const hasSubscription = await requireSubscription(req, res, user, {
+            appName: requestAppName,
+            source: "projects-upload-url",
+            enforceScope: false,
+        });
+        if (!hasSubscription) return;
+
         const crypto = await import("crypto");
         let projectUuid: string;
+        let projectAppName: string | null = null;
 
         if (project_id) {
             // 既存プロジェクトの所有権チェック
             const { data: existing, error: fetchError } = await supabaseAdmin
                 .from("projects")
-                .select("id")
+                .select("id, app_name")
                 .eq("id", project_id)
                 .eq("user_id", user.id)
                 .single();
@@ -52,9 +56,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
 
             projectUuid = project_id;
+            projectAppName =
+                typeof existing.app_name === "string" ? existing.app_name : null;
         } else {
             projectUuid = crypto.randomUUID();
         }
+
+        const hasScopedWriteAccess = await requireSubscription(req, res, user, {
+            appName: resolveScopedAppName({
+                requestAppName,
+                projectAppName,
+            }),
+            source: "projects-upload-url-write",
+        });
+        if (!hasScopedWriteAccess) return;
 
         const storagePath = type === "data"
             ? buildProjectJsonPath(user.id, projectUuid)

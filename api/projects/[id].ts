@@ -15,6 +15,7 @@ import { requireAuth, requireSubscription } from "../_lib/auth-guards.js";
 import { config } from "../_lib/config.js";
 import { getUserGroupIds } from "../_lib/group.js";
 import { resolveAppNameFromRequest } from "../_lib/request-app-context.js";
+import { resolveScopedAppName } from "../_lib/scope-enforcement.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -32,10 +33,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         if (!user) return;
         const requestAppName = resolveAppNameFromRequest(req);
 
-        // サブスクリプションチェック
         const hasSubscription = await requireSubscription(req, res, user, {
             appName: requestAppName,
             source: "projects-detail",
+            enforceScope: false,
         });
         if (!hasSubscription) return;
 
@@ -90,6 +91,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             logger.error("Project not found or access denied", fetchError ?? undefined, { userId: user.id, projectId: id });
             return res.status(404).json({ error: "project_not_found" });
         }
+
+        const hasScopedWriteAccess = await requireSubscription(req, res, user, {
+            appName: resolveScopedAppName({
+                requestAppName,
+                projectAppName: project.app_name,
+            }),
+            source: "projects-detail-write",
+        });
+        if (!hasScopedWriteAccess) return;
 
         // PUT: プロジェクト更新 (名前, データ, サムネイル)
         if (req.method === "PUT") {
