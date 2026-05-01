@@ -20,15 +20,13 @@ export function resolveAppNameFromRequest(
     return fromHeader;
   }
 
-  const fromQuery = normalizeStringValue(req.query.app);
-  if (fromQuery) {
-    return fromQuery;
-  }
-
   const body = req.body as Record<string, unknown> | null | undefined;
   const fromBody =
     normalizeStringValue(body?.app_name) ??
     normalizeStringValue(body?.appName);
+  if (fromBody) {
+    return fromBody;
+  }
 
-  return fromBody;
+  return normalizeStringValue(req.query.app);
 }

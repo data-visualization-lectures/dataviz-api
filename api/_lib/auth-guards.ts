@@ -5,6 +5,7 @@ import { resolveRequiredScopeFromApp } from "./app-registry.js";
 import { config } from "./config.js";
 import { resolveSubscriptionAccess } from "./subscription.js";
 import { logger } from "./logger.js";
+import { shouldBlockScopeMismatch } from "./scope-enforcement.js";
 
 export async function requireAuth(
   req: VercelRequest,
@@ -28,6 +29,7 @@ export async function requireSubscription(
     appName?: string | null;
     requiredScope?: "viz" | "prep" | "bundle" | null;
     source?: string;
+    enforceScope?: boolean;
   } = {},
 ): Promise<boolean> {
   const requiredScope =
@@ -44,6 +46,11 @@ export async function requireSubscription(
   }
 
   if (!access.scopeAllowed) {
+    const scopeEnforced = shouldBlockScopeMismatch({
+      scopeAllowed: access.scopeAllowed,
+      scopeEnforcementEnabled: config.subscription.scopeEnforcementEnabled,
+      enforceScope: opts.enforceScope,
+    });
     const metadata = {
       userId: user.id,
       path: req.url,
@@ -53,9 +60,10 @@ export async function requireSubscription(
       accessibleScopes: access.accessibleScopes,
       source: opts.source ?? "api",
       enforcementEnabled: config.subscription.scopeEnforcementEnabled,
+      scopeEnforced,
     };
 
-    if (config.subscription.scopeEnforcementEnabled) {
+    if (scopeEnforced) {
       logger.info("Scope mismatch blocked", metadata);
       res.status(403).json({ error: "scope_mismatch" });
       return false;
