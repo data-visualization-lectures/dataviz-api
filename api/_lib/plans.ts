@@ -21,6 +21,7 @@ export interface ResolvedPlanRecord {
   planId: string;
   canonicalPlanId: string;
   scope: ServiceScope | null;
+  stripePriceId: string | null;
   amount: number | null;
   currency: string | null;
   name: string | null;
@@ -72,6 +73,10 @@ function toResolvedPlanRecord(
     canonicalPlanId:
       normalizeCanonicalPlanId(row?.canonical_plan_id, planId) ?? planId,
     scope: normalizePlanScope(row?.scope) ?? catalogMetadata?.scope ?? null,
+    stripePriceId:
+      typeof row?.stripe_price_id === "string" && row.stripe_price_id.trim().length > 0
+        ? row.stripe_price_id
+        : null,
     amount:
       typeof row?.amount === "number"
         ? row.amount
@@ -99,7 +104,7 @@ export async function fetchPlanRecord(
 
   const { data, error } = await client
     .from("plans")
-    .select("id, canonical_plan_id, scope, amount, currency, name")
+    .select("id, stripe_price_id, canonical_plan_id, scope, amount, currency, name")
     .eq("id", planId)
     .maybeSingle();
 
@@ -120,7 +125,7 @@ export async function fetchPlanRecordByPriceId(
 
   const { data, error } = await client
     .from("plans")
-    .select("id, canonical_plan_id, scope, amount, currency, name")
+    .select("id, stripe_price_id, canonical_plan_id, scope, amount, currency, name")
     .eq("stripe_price_id", priceId)
     .maybeSingle();
 

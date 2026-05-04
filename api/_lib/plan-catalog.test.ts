@@ -16,15 +16,15 @@ test("checkout resolver keeps legacy JPY aliases working", () => {
     billingInterval: resolved.billingInterval,
     isTeamPlan: resolved.isTeamPlan,
   }, {
-    planId: "pro_monthly",
-    canonicalPlanId: "bundle_pro_monthly",
+    planId: "bundle_monthly_jpy",
+    canonicalPlanId: "bundle_monthly",
     currency: "jpy",
     billingInterval: "monthly",
     isTeamPlan: false,
   });
 });
 
-test("checkout resolver maps USD aliases to USD stored plans", () => {
+test("checkout resolver maps legacy yearly team aliases to new USD plans", () => {
   const resolved = resolveCheckoutPlanSelection("team_standard_yearly", "usd");
 
   assert.deepEqual(resolved && {
@@ -34,25 +34,34 @@ test("checkout resolver maps USD aliases to USD stored plans", () => {
     isTeamPlan: resolved.isTeamPlan,
     maxSeats: resolved.maxSeats,
   }, {
-    planId: "team_standard_yearly_usd",
-    canonicalPlanId: "bundle_team_standard_yearly",
+    planId: "team_bundle_standard_yearly_usd",
+    canonicalPlanId: "team_bundle_standard_yearly",
     currency: "usd",
     isTeamPlan: true,
     maxSeats: 10,
   });
 });
 
-test("checkout resolver falls back to JPY when a USD coaching alias is requested", () => {
-  const resolved = resolveCheckoutPlanSelection("coaching_monthly", "usd");
+test("checkout resolver accepts current plan ids directly", () => {
+  const resolved = resolveCheckoutPlanSelection("prep_yearly_usd", "jpy");
 
-  assert.equal(resolved?.planId, "coaching_monthly");
-  assert.equal(resolved?.currency, "jpy");
-  assert.equal(resolved?.canonicalPlanId, "bundle_coaching_monthly");
+  assert.equal(resolved?.planId, "prep_yearly_usd");
+  assert.equal(resolved?.canonicalPlanId, "prep_yearly");
+  assert.equal(resolved?.currency, "usd");
+  assert.equal(resolved?.scope, "prep");
+});
+
+test("checkout resolver stops selling coaching and monthly legacy team products", () => {
+  const resolved = resolveCheckoutPlanSelection("coaching_monthly", "usd");
+  const legacyMonthlyTeam = resolveCheckoutPlanSelection("team_small_monthly", "jpy");
+
+  assert.equal(resolved, null);
+  assert.equal(legacyMonthlyTeam, null);
 });
 
 test("canonical resolver collapses currency variants into shared plan families", () => {
   assert.equal(resolveCanonicalPlanId("pro_yearly"), "bundle_pro_yearly");
-  assert.equal(resolveCanonicalPlanId("pro_yearly_usd"), "bundle_pro_yearly");
+  assert.equal(resolveCanonicalPlanId("viz_yearly_usd"), "viz_yearly");
   assert.equal(resolveCanonicalPlanId("team_member"), "team_member");
 });
 
