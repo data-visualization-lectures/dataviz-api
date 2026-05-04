@@ -1,0 +1,35 @@
+
+> dataviz-api@1.0.0 stripe:register-phase4
+> node --experimental-strip-types ./scripts/register-phase4-stripe-catalog.ts --apply --tsv
+
+product_id	product_name_en	stripe_product_id	price_key	price_name_en	lookup_key	currency	amount	stripe_price_id	status
+viz_monthly	Visualization Plan (Monthly)	prod_US38E7A9MVPgSK	viz_monthly_jpy	Visualization Plan (Monthly) - JPY	viz_monthly_jpy	jpy	1000	price_1TT92SK5wR3Ed1awmgWXyuWc	existing
+viz_monthly	Visualization Plan (Monthly)	prod_US38E7A9MVPgSK	viz_monthly_usd	Visualization Plan (Monthly) - USD	viz_monthly_usd	usd	800	price_1TT92UK5wR3Ed1aw0Q3RuOQi	existing
+viz_yearly	Visualization Plan (Yearly)	prod_US38s6L5PEXvI4	viz_yearly_jpy	Visualization Plan (Yearly) - JPY	viz_yearly_jpy	jpy	10000	price_1TT92VK5wR3Ed1awEDoxX7qH	existing
+viz_yearly	Visualization Plan (Yearly)	prod_US38s6L5PEXvI4	viz_yearly_usd	Visualization Plan (Yearly) - USD	viz_yearly_usd	usd	8000	price_1TT92WK5wR3Ed1awrd8eivEm	existing
+prep_monthly	Data Preparation Plan (Monthly)	prod_US38sGqDSdbDfk	prep_monthly_jpy	Data Preparation Plan (Monthly) - JPY	prep_monthly_jpy	jpy	1480	price_1TT92XK5wR3Ed1aw8D1oORSB	existing
+prep_monthly	Data Preparation Plan (Monthly)	prod_US38sGqDSdbDfk	prep_monthly_usd	Data Preparation Plan (Monthly) - USD	prep_monthly_usd	usd	1200	price_1TT92ZK5wR3Ed1aw3FR45T8g	existing
+prep_yearly	Data Preparation Plan (Yearly)	prod_US38GFFmEsRjaP	prep_yearly_jpy	Data Preparation Plan (Yearly) - JPY	prep_yearly_jpy	jpy	14800	price_1TT92aK5wR3Ed1aw0rBuB9Yf	existing
+prep_yearly	Data Preparation Plan (Yearly)	prod_US38GFFmEsRjaP	prep_yearly_usd	Data Preparation Plan (Yearly) - USD	prep_yearly_usd	usd	12000	price_1TT92cK5wR3Ed1awi60T9w7R	existing
+bundle_monthly	All-in-One Plan (Monthly)	prod_US385faumkThjg	bundle_monthly_jpy	All-in-One Plan (Monthly) - JPY	bundle_monthly_jpy	jpy	2480	price_1TT92dK5wR3Ed1aw7FpCpn8b	existing
+bundle_monthly	All-in-One Plan (Monthly)	prod_US385faumkThjg	bundle_monthly_usd	All-in-One Plan (Monthly) - USD	bundle_monthly_usd	usd	1900	price_1TT92fK5wR3Ed1awUNlxbDh6	existing
+bundle_yearly	All-in-One Plan (Yearly)	prod_US38CZi0z8TN15	bundle_yearly_jpy	All-in-One Plan (Yearly) - JPY	bundle_yearly_jpy	jpy	24800	price_1TT92gK5wR3Ed1aw4AYO1RiO	existing
+bundle_yearly	All-in-One Plan (Yearly)	prod_US38CZi0z8TN15	bundle_yearly_usd	All-in-One Plan (Yearly) - USD	bundle_yearly_usd	usd	19000	price_1TT92hK5wR3Ed1awPBMMK8Yh	existing
+team_viz_small_yearly	Visualization Team Plan Small (Yearly)	prod_US39bJ79zDdghc	team_viz_small_yearly_jpy	Visualization Team Plan Small (Yearly) - JPY	team_viz_small_yearly_jpy	jpy	40000	price_1TT92jK5wR3Ed1awwiCppFBc	existing
+team_viz_small_yearly	Visualization Team Plan Small (Yearly)	prod_US39bJ79zDdghc	team_viz_small_yearly_usd	Visualization Team Plan Small (Yearly) - USD	team_viz_small_yearly_usd	usd	32000	price_1TT92kK5wR3Ed1awCgDF2J3b	existing
+team_viz_standard_yearly	Visualization Team Plan Standard (Yearly)	prod_US39ltJdIKYEdR	team_viz_standard_yearly_jpy	Visualization Team Plan Standard (Yearly) - JPY	team_viz_standard_yearly_jpy	jpy	80000	price_1TT92lK5wR3Ed1awnlnAyx5J	existing
+team_viz_standard_yearly	Visualization Team Plan Standard (Yearly)	prod_US39ltJdIKYEdR	team_viz_standard_yearly_usd	Visualization Team Plan Standard (Yearly) - USD	team_viz_standard_yearly_usd	usd	64000	price_1TT92nK5wR3Ed1awAMzNpONN	existing
+team_viz_enterprise_yearly	Visualization Team Plan Enterprise (Yearly)	prod_US39lJcLQolUIp	team_viz_enterprise_yearly_jpy	Visualization Team Plan Enterprise (Yearly) - JPY	team_viz_enterprise_yearly_jpy	jpy	240000	price_1TT92oK5wR3Ed1aw5X9kdj8f	existing
+team_viz_enterprise_yearly	Visualization Team Plan Enterprise (Yearly)	prod_US39lJcLQolUIp	team_viz_enterprise_yearly_usd	Visualization Team Plan Enterprise (Yearly) - USD	team_viz_enterprise_yearly_usd	usd	192000	price_1TT92qK5wR3Ed1awqtgICWmb	existing
+team_prep_small_yearly	Data Preparation Team Plan Small (Yearly)	prod_US39qk0qj4zcb9	team_prep_small_yearly_jpy	Data Preparation Team Plan Small (Yearly) - JPY	team_prep_small_yearly_jpy	jpy	59000	price_1TT92rK5wR3Ed1awRUAWhjQP	existing
+team_prep_small_yearly	Data Preparation Team Plan Small (Yearly)	prod_US39qk0qj4zcb9	team_prep_small_yearly_usd	Data Preparation Team Plan Small (Yearly) - USD	team_prep_small_yearly_usd	usd	48000	price_1TT92tK5wR3Ed1awXoZEi7J7	existing
+team_prep_standard_yearly	Data Preparation Team Plan Standard (Yearly)	prod_US39QtrR45vYar	team_prep_standard_yearly_jpy	Data Preparation Team Plan Standard (Yearly) - JPY	team_prep_standard_yearly_jpy	jpy	118000	price_1TT92uK5wR3Ed1awsO7kxqqM	existing
+team_prep_standard_yearly	Data Preparation Team Plan Standard (Yearly)	prod_US39QtrR45vYar	team_prep_standard_yearly_usd	Data Preparation Team Plan Standard (Yearly) - USD	team_prep_standard_yearly_usd	usd	96000	price_1TT92vK5wR3Ed1awIIB9RDhw	existing
+team_prep_enterprise_yearly	Data Preparation Team Plan Enterprise (Yearly)	prod_US39Ka9yMlMGiC	team_prep_enterprise_yearly_jpy	Data Preparation Team Plan Enterprise (Yearly) - JPY	team_prep_enterprise_yearly_jpy	jpy	355000	price_1TT92wK5wR3Ed1awuu1HaEFJ	existing
+team_prep_enterprise_yearly	Data Preparation Team Plan Enterprise (Yearly)	prod_US39Ka9yMlMGiC	team_prep_enterprise_yearly_usd	Data Preparation Team Plan Enterprise (Yearly) - USD	team_prep_enterprise_yearly_usd	usd	288000	price_1TT92yK5wR3Ed1awUKePMHey	existing
+team_bundle_small_yearly	All-in-One Team Plan Small (Yearly)	prod_US39ODvaZHtIaL	team_bundle_small_yearly_jpy	All-in-One Team Plan Small (Yearly) - JPY	team_bundle_small_yearly_jpy	jpy	99000	price_1TT92zK5wR3Ed1awAsEANC9V	existing
+team_bundle_small_yearly	All-in-One Team Plan Small (Yearly)	prod_US39ODvaZHtIaL	team_bundle_small_yearly_usd	All-in-One Team Plan Small (Yearly) - USD	team_bundle_small_yearly_usd	usd	80000	price_1TT931K5wR3Ed1awgKpWL6Bm	existing
+team_bundle_standard_yearly	All-in-One Team Plan Standard (Yearly)	prod_US39SMkVVbBypu	team_bundle_standard_yearly_jpy	All-in-One Team Plan Standard (Yearly) - JPY	team_bundle_standard_yearly_jpy	jpy	198000	price_1TT932K5wR3Ed1aw6DtWIAsD	existing
+team_bundle_standard_yearly	All-in-One Team Plan Standard (Yearly)	prod_US39SMkVVbBypu	team_bundle_standard_yearly_usd	All-in-One Team Plan Standard (Yearly) - USD	team_bundle_standard_yearly_usd	usd	160000	price_1TT934K5wR3Ed1awAdL9noV8	existing
+team_bundle_enterprise_yearly	All-in-One Team Plan Enterprise (Yearly)	prod_US3942D41UtHoA	team_bundle_enterprise_yearly_jpy	All-in-One Team Plan Enterprise (Yearly) - JPY	team_bundle_enterprise_yearly_jpy	jpy	595000	price_1TT935K5wR3Ed1aw73ib5GUd	existing
+team_bundle_enterprise_yearly	All-in-One Team Plan Enterprise (Yearly)	prod_US3942D41UtHoA	team_bundle_enterprise_yearly_usd	All-in-One Team Plan Enterprise (Yearly) - USD	team_bundle_enterprise_yearly_usd	usd	480000	price_1TT937K5wR3Ed1awMDn6bacl	existing

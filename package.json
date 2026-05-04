@@ -5,7 +5,9 @@
   "scripts": {
     "dev:test": "USE_ENV_FILE=.env.test vercel dev --listen 3001",
     "typecheck": "tsc --noEmit -p tsconfig.json",
-    "lint": "npm run typecheck"
+    "lint": "npm run typecheck",
+    "stripe:register-phase4:dry-run": "node --experimental-strip-types ./scripts/register-phase4-stripe-catalog.ts",
+    "stripe:register-phase4": "node --experimental-strip-types ./scripts/register-phase4-stripe-catalog.ts --apply"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.48.0",

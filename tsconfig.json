@@ -9,5 +9,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["api/**/*"]
+  "include": ["api/**/*", "scripts/**/*"]
 }
