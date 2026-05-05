@@ -25,9 +25,14 @@ export interface ResolvedSubscriptionAccess {
     subscription: SubscriptionRecord | null;
 }
 
+interface EffectiveSubscriptionResolution {
+    subscription: SubscriptionRecord | null;
+    planScopeOverride: ServiceScope | null;
+}
+
 async function resolveEffectiveSubscription(
     user: AuthenticatedUser,
-): Promise<SubscriptionRecord | null> {
+): Promise<EffectiveSubscriptionResolution> {
     // 1. Check DB for active/trialing subscription
     const { data: subscription, error } = await supabaseAdmin
         .from("subscriptions")
@@ -52,18 +57,7 @@ async function resolveEffectiveSubscription(
         }
     }
 
-    // 2. グループ所属チェック: ownerのサブスクが有効ならメンバーにもアクセス権を付与
-    const groupSub = await getActiveGroupSubscription(user.id);
-    if (groupSub) {
-        effectiveSubscription = {
-            user_id: user.id,
-            plan_id: "team_member",
-            status: "active",
-            current_period_end: groupSub.current_period_end,
-        };
-    }
-
-    // 3. Academia check as fallback
+    // 2. Academia check as fallback
     // アカデミア会員（無料付与）判定
     // DBに有効なサブスクリプションがない、かつ大学ドメインの場合に付与
     if (!effectiveSubscription && user.email && (await isAcademiaEmail(user.email))) {
@@ -75,20 +69,38 @@ async function resolveEffectiveSubscription(
         };
     }
 
+    // 3. グループ所属チェック: owner の active team 契約を、個人契約がない場合だけ継承する。
+    // 継承 scope は DB 上の team_member ではなく owner の plan.scope を正にする。
+    let planScopeOverride: ServiceScope | null = null;
+    if (!effectiveSubscription) {
+        const groupSub = await getActiveGroupSubscription(user.id);
+        if (groupSub) {
+            planScopeOverride = groupSub.scope;
+            effectiveSubscription = {
+                user_id: user.id,
+                plan_id: "team_member",
+                status: "active",
+                current_period_end: groupSub.current_period_end,
+            };
+        }
+    }
+
     // Error logging if needed, or simply return false
     if (error) {
         logger.error("checkSubscription error", error as Error, { userId: user.id });
     }
 
-    return effectiveSubscription;
+    return { subscription: effectiveSubscription, planScopeOverride };
 }
 
 export async function resolveSubscriptionAccess(
     user: AuthenticatedUser,
     opts: SubscriptionAccessOptions = {},
 ): Promise<ResolvedSubscriptionAccess> {
-    const effectiveSubscription = await resolveEffectiveSubscription(user);
-    const planScope = await fetchPlanScope(effectiveSubscription?.plan_id);
+    const effective = await resolveEffectiveSubscription(user);
+    const effectiveSubscription = effective.subscription;
+    const planScope =
+        effective.planScopeOverride ?? (await fetchPlanScope(effectiveSubscription?.plan_id));
     const entitlements = resolveEntitlements({
         subscription: effectiveSubscription,
         planScope,
