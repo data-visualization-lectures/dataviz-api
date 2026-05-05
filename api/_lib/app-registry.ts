@@ -6,6 +6,8 @@ export interface AppRegistryEntry {
   appName: string;
   scope: ServiceScope;
   toolUrl: string;
+  canonicalHost?: string;
+  legacyHosts?: readonly string[];
   marketingUrl: string;
   hubHost: string;
   supportsSavedProjects: boolean;
@@ -206,7 +208,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "mapshaper",
     scope: "prep",
-    toolUrl: "https://mapshaper.dataviz.jp",
+    toolUrl: "https://mapshaper.dataprep.jp",
+    canonicalHost: "mapshaper.dataprep.jp",
+    legacyHosts: ["mapshaper.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/mapshaper/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -269,7 +273,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "jsoncrack",
     scope: "prep",
-    toolUrl: "https://jsoncrack.dataviz.jp",
+    toolUrl: "https://jsoncrack.dataprep.jp",
+    canonicalHost: "jsoncrack.dataprep.jp",
+    legacyHosts: ["jsoncrack.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/jsoncrack/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -278,7 +284,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "geojson",
     scope: "prep",
-    toolUrl: "https://geojson.dataviz.jp",
+    toolUrl: "https://geojson.dataprep.jp",
+    canonicalHost: "geojson.dataprep.jp",
+    legacyHosts: ["geojson.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/geojson/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -287,7 +295,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "change-character-encoding",
     scope: "prep",
-    toolUrl: "https://change-character-encoding.dataviz.jp",
+    toolUrl: "https://change-character-encoding.dataprep.jp",
+    canonicalHost: "change-character-encoding.dataprep.jp",
+    legacyHosts: ["change-character-encoding.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/change-character-encoding/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -296,7 +306,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "tabula-pdf",
     scope: "prep",
-    toolUrl: "https://tabula-pdf.dataviz.jp",
+    toolUrl: "https://tabula-pdf.dataprep.jp",
+    canonicalHost: "tabula-pdf.dataprep.jp",
+    legacyHosts: ["tabula-pdf.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/tabula-pdf/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -305,7 +317,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "text-entity",
     scope: "prep",
-    toolUrl: "https://text-entity.dataviz.jp",
+    toolUrl: "https://text-entity.dataprep.jp",
+    canonicalHost: "text-entity.dataprep.jp",
+    legacyHosts: ["text-entity.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/text-entity/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -314,7 +328,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "aozora-furigana",
     scope: "prep",
-    toolUrl: "https://aozora-furigana.dataviz.jp",
+    toolUrl: "https://aozora-furigana.dataprep.jp",
+    canonicalHost: "aozora-furigana.dataprep.jp",
+    legacyHosts: ["aozora-furigana.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/aozora-furigana/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -323,7 +339,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "geo-data-merger",
     scope: "prep",
-    toolUrl: "https://geo-data-merger.dataviz.jp",
+    toolUrl: "https://geo-data-merger.dataprep.jp",
+    canonicalHost: "geo-data-merger.dataprep.jp",
+    legacyHosts: ["geo-data-merger.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/geo-data-merger/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -332,7 +350,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "gtfs-to-network",
     scope: "prep",
-    toolUrl: "https://gtfs-to-network.dataviz.jp",
+    toolUrl: "https://gtfs-to-network.dataprep.jp",
+    canonicalHost: "gtfs-to-network.dataprep.jp",
+    legacyHosts: ["gtfs-to-network.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/gtfs-to-network/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -341,7 +361,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "classic-mapbox-styles",
     scope: "prep",
-    toolUrl: "https://classic-mapbox-styles.dataviz.jp",
+    toolUrl: "https://classic-mapbox-styles.dataprep.jp",
+    canonicalHost: "classic-mapbox-styles.dataprep.jp",
+    legacyHosts: ["classic-mapbox-styles.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/classic-mapbox-styles/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -350,7 +372,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "geojson-and-svg",
     scope: "prep",
-    toolUrl: "https://geojson-and-svg.dataviz.jp",
+    toolUrl: "https://geojson-and-svg.dataprep.jp",
+    canonicalHost: "geojson-and-svg.dataprep.jp",
+    legacyHosts: ["geojson-and-svg.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/geojson-and-svg/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -359,7 +383,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "latlon-formatter",
     scope: "prep",
-    toolUrl: "https://latlon-formatter.dataviz.jp",
+    toolUrl: "https://latlon-formatter.dataprep.jp",
+    canonicalHost: "latlon-formatter.dataprep.jp",
+    legacyHosts: ["latlon-formatter.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/latlon-formatter/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -368,7 +394,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "transform-coordinates",
     scope: "prep",
-    toolUrl: "https://transform-coordinates.dataviz.jp",
+    toolUrl: "https://transform-coordinates.dataprep.jp",
+    canonicalHost: "transform-coordinates.dataprep.jp",
+    legacyHosts: ["transform-coordinates.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/transform-coordinates/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -377,7 +405,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "address-to-latlon",
     scope: "prep",
-    toolUrl: "https://address-to-latlon.dataviz.jp",
+    toolUrl: "https://address-to-latlon.dataprep.jp",
+    canonicalHost: "address-to-latlon.dataprep.jp",
+    legacyHosts: ["address-to-latlon.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/address-to-latlon/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -386,7 +416,9 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "what-the-tile",
     scope: "prep",
-    toolUrl: "https://what-the-tile.dataviz.jp",
+    toolUrl: "https://what-the-tile.dataprep.jp",
+    canonicalHost: "what-the-tile.dataprep.jp",
+    legacyHosts: ["what-the-tile.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/what-the-tile/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
@@ -395,8 +427,21 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "calendar-converter",
     scope: "prep",
-    toolUrl: "https://calendar-converter.dataviz.jp",
+    toolUrl: "https://calendar-converter.dataprep.jp",
+    canonicalHost: "calendar-converter.dataprep.jp",
+    legacyHosts: ["calendar-converter.dataviz.jp"],
     marketingUrl: "https://www.dataviz.jp/calendar-converter/",
+    hubHost: "app.dataprep.jp",
+    supportsSavedProjects: false,
+    projectBackend: "none",
+  },
+  {
+    appName: "turf-buffer",
+    scope: "prep",
+    toolUrl: "https://turf-buffer.dataprep.jp",
+    canonicalHost: "turf-buffer.dataprep.jp",
+    legacyHosts: ["turf-buffer.dataviz.jp"],
+    marketingUrl: "https://www.dataviz.jp/turf-buffer/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
     projectBackend: "none",
