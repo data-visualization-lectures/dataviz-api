@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 import {
+  combineServiceScopes,
   hasAccessibleScope,
   isSubscribedStatus,
   resolveAccessibleScopes,
@@ -87,6 +88,15 @@ test("team members can inherit a scoped team owner plan", () => {
       accessibleScopes: ["prep"],
     },
   );
+});
+
+test("combineServiceScopes preserves scoped team inheritance", () => {
+  assert.equal(combineServiceScopes([]), null);
+  assert.equal(combineServiceScopes(["viz"]), "viz");
+  assert.equal(combineServiceScopes(["prep"]), "prep");
+  assert.equal(combineServiceScopes(["viz", "prep"]), "bundle");
+  assert.equal(combineServiceScopes(["viz", "bundle"]), "bundle");
+  assert.equal(combineServiceScopes([null, "viz"]), "bundle");
 });
 
 test("resolveEntitlements keeps unsubscribed users out while preserving scope metadata", () => {

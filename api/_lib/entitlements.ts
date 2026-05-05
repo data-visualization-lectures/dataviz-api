@@ -68,6 +68,37 @@ export function hasAccessibleScope(params: {
   return normalizedAccessibleScopes.includes(requiredScope as AccessibleScope);
 }
 
+export function combineServiceScopes(
+  scopes: Array<ServiceScope | null | undefined>,
+): ServiceScope | null {
+  if (scopes.length === 0) {
+    return null;
+  }
+
+  const normalized = scopes.map((scope) =>
+    scope === "viz" || scope === "prep" || scope === "bundle" ? scope : null,
+  );
+
+  // Missing scope means a legacy or unresolved team plan. Preserve the existing
+  // compatibility behavior by treating it as bundle-equivalent.
+  if (normalized.some((scope) => scope === null || scope === "bundle")) {
+    return "bundle";
+  }
+
+  const unique = new Set(normalized);
+  if (unique.has("viz") && unique.has("prep")) {
+    return "bundle";
+  }
+  if (unique.has("viz")) {
+    return "viz";
+  }
+  if (unique.has("prep")) {
+    return "prep";
+  }
+
+  return null;
+}
+
 export function resolveEntitlements(params: {
   subscription: Pick<SubscriptionRecord, "plan_id" | "status"> | null | undefined;
   planScope?: ServiceScope | null;
