@@ -199,8 +199,10 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
   {
     appName: "open-refine",
     scope: "prep",
-    toolUrl: "https://open-refine.dataviz.jp",
-    marketingUrl: "https://www.dataviz.jp/open-refine/",
+    toolUrl: "https://open-refine.dataprep.jp",
+    canonicalHost: "open-refine.dataprep.jp",
+    legacyHosts: ["open-refine.dataviz.jp"],
+    marketingUrl: "https://www.dataprep.jp/open-refine/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: true,
     projectBackend: "openrefine_projects",
