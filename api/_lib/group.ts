@@ -1,6 +1,13 @@
 // api/_lib/group.ts
 
 import { supabaseAdmin } from "./supabase.js";
+import type { ServiceScope } from "./types.js";
+
+function normalizeServiceScope(scope: unknown): ServiceScope | null {
+    return scope === "viz" || scope === "prep" || scope === "bundle"
+        ? scope
+        : null;
+}
 
 /**
  * ユーザーの所属グループ情報を返す
@@ -51,7 +58,7 @@ export async function getLeaderGroupIds(userId: string): Promise<string[]> {
  * あればそのサブスク情報を返す。
  */
 export async function getActiveGroupSubscription(userId: string): Promise<
-    { current_period_end: string | null } | null
+    { current_period_end: string | null; plan_id: string | null; scope: ServiceScope | null } | null
 > {
     // ユーザーが所属するグループを取得
     const { data: memberships } = await supabaseAdmin
@@ -84,5 +91,24 @@ export async function getActiveGroupSubscription(userId: string): Promise<
         .limit(1)
         .maybeSingle();
 
-    return subscription ?? null;
+    if (!subscription) return null;
+
+    const planId =
+        typeof subscription.plan_id === "string" ? subscription.plan_id : null;
+    const { data: plan } = planId
+        ? await supabaseAdmin
+            .from("plans")
+            .select("scope")
+            .eq("id", planId)
+            .maybeSingle()
+        : { data: null };
+
+    return {
+        current_period_end:
+            typeof subscription.current_period_end === "string"
+                ? subscription.current_period_end
+                : null,
+        plan_id: planId,
+        scope: normalizeServiceScope(plan?.scope),
+    };
 }

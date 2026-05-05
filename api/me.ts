@@ -9,6 +9,7 @@ import { expireSubscriptionIfNeeded } from "./_lib/subscription-expiry.js";
 import { getUserGroups, getActiveGroupSubscription } from "./_lib/group.js";
 import { resolveEntitlements } from "./_lib/entitlements.js";
 import { fetchPlanScope } from "./_lib/plans.js";
+import type { ServiceScope } from "./_lib/types.js";
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -107,9 +108,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     // グループ所属チェック: ownerのサブスクが有効ならメンバーにもactive権限を付与
+    let inheritedTeamMemberScope: ServiceScope | null = null;
     if (!finalSubscription || (finalSubscription as any).status !== "active") {
       const groupSub = await getActiveGroupSubscription(user.id);
       if (groupSub) {
+        inheritedTeamMemberScope = groupSub.scope;
         finalSubscription = {
           user_id: user.id,
           status: "active",
@@ -123,7 +126,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // グループ情報を取得
     const groups = await getUserGroups(user.id);
-    const planScope = await fetchPlanScope(finalSubscription?.plan_id);
+    const planScope =
+      inheritedTeamMemberScope ?? (await fetchPlanScope(finalSubscription?.plan_id));
     const entitlements = resolveEntitlements({
       subscription: finalSubscription,
       planScope,

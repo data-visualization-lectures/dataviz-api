@@ -63,6 +63,32 @@ test("accessible scopes stay shared while compatibility mode is active", () => {
   );
 });
 
+test("team members can inherit a scoped team owner plan", () => {
+  assert.deepEqual(
+    resolveEntitlements({
+      subscription: { plan_id: "team_member", status: "active" },
+      planScope: "viz",
+    }),
+    {
+      isSubscribed: true,
+      subscriptionScope: "viz",
+      accessibleScopes: ["viz"],
+    },
+  );
+
+  assert.deepEqual(
+    resolveEntitlements({
+      subscription: { plan_id: "team_member", status: "active" },
+      planScope: "prep",
+    }),
+    {
+      isSubscribed: true,
+      subscriptionScope: "prep",
+      accessibleScopes: ["prep"],
+    },
+  );
+});
+
 test("resolveEntitlements keeps unsubscribed users out while preserving scope metadata", () => {
   assert.deepEqual(
     resolveEntitlements({
