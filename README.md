@@ -17,7 +17,10 @@ Supabase の `academia_domains` テーブルで管理されている大学ドメ
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (Stripe Webhook 検証とAPI呼び出し)
 - `STRIPE_PRO_MONTHLY_PRICE_ID` (Checkoutで使う価格ID)
 - `FRONTEND_BASE_URL` (省略時 `https://app.dataviz.jp`)
+- `SUBSCRIPTION_SCOPE_ENFORCEMENT` (Phase 3B の書き込み系 scope enforcement。production は有効化作業まで `false`)
 - `CRON_SECRET` (任意。設定時は Cron エンドポイントに Bearer で送信)
+
+Phase 6 前の `team_member` scope 継承、Phase 3B flag 有効化、旧契約表示方針は [docs/pre-phase6-access-policy.md](docs/pre-phase6-access-policy.md) を参照。
 
 ## Supabase スキーマ
 - `profiles(id, display_name, created_at, updated_at)`
