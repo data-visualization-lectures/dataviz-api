@@ -35,6 +35,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "projects",
   },
   {
+    appName: "keplergl",
+    scope: "viz",
+    toolUrl: "https://kepler-gl.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/kepler-gl/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: true,
+    projectBackend: "projects",
+  },
+  {
     appName: "cartogram-japan",
     scope: "viz",
     toolUrl: "https://cartogram-japan.dataviz.jp",
