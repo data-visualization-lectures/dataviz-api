@@ -5,6 +5,7 @@ import { createStripeClient } from "./_lib/stripe.js";
 import { getUserFromRequest, supabaseAdmin } from "./_lib/supabase.js";
 import { config } from "./_lib/config.js";
 import { logger } from "./_lib/logger.js";
+import { buildFrontendUrl } from "./_lib/frontend-url.js";
 
 // ================== Stripe クライアント ==================
 const stripe = createStripeClient();
@@ -77,7 +78,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: stripeCustomerId,
-      return_url: `${config.frontend.baseUrl}/account`
+      return_url: buildFrontendUrl(req, config.frontend.baseUrl, "/account")
     });
 
     return res.status(200).json({ url: portalSession.url });

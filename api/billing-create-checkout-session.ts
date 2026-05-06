@@ -9,6 +9,7 @@ import {
   resolveCheckoutPlanSelection,
 } from "./_lib/plan-catalog.js";
 import { fetchPlanRecord } from "./_lib/plans.js";
+import { buildFrontendUrl } from "./_lib/frontend-url.js";
 
 // ================== Stripe クライアント ==================
 const stripe = createStripeClient();
@@ -48,7 +49,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (sub?.status === "active" && !resolvedPlan.isTeamPlan) {
       return res.status(200).json({
         error: "already_subscribed",
-        redirect_url: `${config.frontend.baseUrl}/account`
+        redirect_url: buildFrontendUrl(req, config.frontend.baseUrl, "/account")
       });
     }
 
@@ -112,8 +113,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           quantity: 1
         }
       ],
-      success_url: `${config.frontend.baseUrl}/billing/success`,
-      cancel_url: `${config.frontend.baseUrl}/billing/cancel`,
+      success_url: buildFrontendUrl(req, config.frontend.baseUrl, "/billing/success"),
+      cancel_url: buildFrontendUrl(req, config.frontend.baseUrl, "/billing/cancel"),
       subscription_data: {
         metadata: {
           user_id: user.id,
