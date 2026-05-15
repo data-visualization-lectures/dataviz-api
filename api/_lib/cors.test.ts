@@ -33,6 +33,10 @@ test("setCors allows dataviz and dataprep service origins", () => {
     setCors({ headers: { origin }, method: "GET" } as never, res as never);
     assert.equal(res.headers.get("Access-Control-Allow-Origin"), origin);
     assert.equal(res.headers.get("Access-Control-Allow-Credentials"), "true");
+    assert.match(
+      res.headers.get("Access-Control-Allow-Headers") ?? "",
+      /\bX-Service-Scope\b/,
+    );
   }
 });
 
