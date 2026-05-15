@@ -15,6 +15,8 @@ export type SubscriptionStatus =
 export type ServiceScope = "viz" | "prep" | "bundle";
 
 export type AccessibleScope = "viz" | "prep";
+export type ServiceTrialScope = AccessibleScope;
+export type ServiceTrialStatus = "eligible" | "trialing" | "expired";
 
 /**
  * 認証済みユーザー情報
@@ -39,6 +41,22 @@ export interface SubscriptionRecord {
   cancel_at_period_end?: boolean | null;
   created_at?: string;
   updated_at?: string;
+}
+
+export interface ServiceTrialRecord {
+  user_id: string;
+  service_scope: ServiceTrialScope;
+  status: ServiceTrialStatus;
+  started_at?: string | null;
+  current_period_end?: string | null;
+  expired_at?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
+export interface ServiceTrialMap {
+  viz: ServiceTrialRecord | null;
+  prep: ServiceTrialRecord | null;
 }
 
 /**
@@ -82,6 +100,16 @@ export interface MeResponse {
     group_name: string;
   }>;
   accessible_scopes?: AccessibleScope[];
+  service_trials?: {
+    viz: {
+      status: ServiceTrialStatus;
+      current_period_end?: string | null;
+    } | null;
+    prep: {
+      status: ServiceTrialStatus;
+      current_period_end?: string | null;
+    } | null;
+  };
 }
 
 /**

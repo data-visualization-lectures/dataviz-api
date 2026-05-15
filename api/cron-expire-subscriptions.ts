@@ -70,6 +70,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       logger.error("cron: trial update failed", trialError);
     }
 
+    const { data: expiredServiceTrials, error: serviceTrialError } =
+      await supabaseAdmin
+        .from("service_trials")
+        .update({
+          status: "expired",
+          expired_at: nowIso,
+          updated_at: nowIso,
+        })
+        .eq("status", "trialing")
+        .lt("current_period_end", nowIso)
+        .select("user_id, service_scope");
+
+    if (serviceTrialError) {
+      logger.error("cron: service trial update failed", serviceTrialError);
+    }
+
     const { count: staleActiveCount, error: staleActiveError } =
       await supabaseAdmin
         .from("subscriptions")
@@ -86,6 +102,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       now: nowIso,
       expired_by_period_end: canceledByPeriodEnd?.length ?? 0,
       expired_trials: canceledTrials?.length ?? 0,
+      expired_service_trials: expiredServiceTrials?.length ?? 0,
       stale_active_count: staleActiveCount ?? 0,
     });
   } catch (err) {

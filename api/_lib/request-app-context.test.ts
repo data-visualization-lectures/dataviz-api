@@ -2,7 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import type { VercelRequest } from "@vercel/node";
 
-import { resolveAppNameFromRequest } from "./request-app-context.ts";
+import {
+  resolveAppNameFromRequest,
+  resolveServiceScopeFromRequest,
+} from "./request-app-context.ts";
 
 function buildRequest(params: {
   headers?: Record<string, string | string[] | undefined>;
@@ -45,5 +48,43 @@ test("resolveAppNameFromRequest prefers header, then body, then query", () => {
       }),
     ),
     "open-refine",
+  );
+});
+
+test("resolveServiceScopeFromRequest validates scope against request host", () => {
+  assert.equal(
+    resolveServiceScopeFromRequest(
+      buildRequest({
+        headers: {
+          "x-service-scope": "prep",
+          origin: "https://mapshaper.dataprep.jp",
+        },
+      }),
+    ),
+    "prep",
+  );
+
+  assert.equal(
+    resolveServiceScopeFromRequest(
+      buildRequest({
+        headers: {
+          "x-service-scope": "viz",
+          origin: "https://mapshaper.dataprep.jp",
+        },
+      }),
+    ),
+    null,
+  );
+
+  assert.equal(
+    resolveServiceScopeFromRequest(
+      buildRequest({
+        headers: {
+          "x-service-scope": "viz",
+          origin: "http://localhost:3000",
+        },
+      }),
+    ),
+    "viz",
   );
 });

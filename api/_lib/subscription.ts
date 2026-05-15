@@ -8,6 +8,7 @@ import { hasAccessibleScope, resolveEntitlements } from "./entitlements.js";
 import { fetchPlanScope } from "./plans.js";
 import { resolveRequiredScopeFromApp } from "./app-registry.js";
 import { config } from "./config.js";
+import { fetchServiceTrialsForUser } from "./service-trials.js";
 import type { AccessibleScope, ServiceScope, SubscriptionRecord } from "./types.js";
 
 export interface SubscriptionAccessOptions {
@@ -97,13 +98,17 @@ export async function resolveSubscriptionAccess(
     user: AuthenticatedUser,
     opts: SubscriptionAccessOptions = {},
 ): Promise<ResolvedSubscriptionAccess> {
-    const effective = await resolveEffectiveSubscription(user);
+    const [effective, serviceTrials] = await Promise.all([
+        resolveEffectiveSubscription(user),
+        fetchServiceTrialsForUser(supabaseAdmin, user.id),
+    ]);
     const effectiveSubscription = effective.subscription;
     const planScope =
         effective.planScopeOverride ?? (await fetchPlanScope(effectiveSubscription?.plan_id));
     const entitlements = resolveEntitlements({
         subscription: effectiveSubscription,
         planScope,
+        serviceTrials,
     });
     const requiredScope =
         opts.requiredScope ?? resolveRequiredScopeFromApp(opts.appName);
