@@ -9,6 +9,13 @@ import { expireSubscriptionIfNeeded } from "./_lib/subscription-expiry.js";
 import { getUserGroups, getActiveGroupSubscription } from "./_lib/group.js";
 import { resolveEntitlements } from "./_lib/entitlements.js";
 import { fetchPlanScope } from "./_lib/plans.js";
+import {
+  expireServiceTrialsForUserIfNeeded,
+  fetchServiceTrialsForUser,
+  hasEligibleServiceTrial,
+  startEligibleServiceTrial,
+} from "./_lib/service-trials.js";
+import { resolveServiceScopeFromRequest } from "./_lib/request-app-context.js";
 import type { ServiceScope } from "./_lib/types.js";
 
 // ================== ハンドラ本体 ==================
@@ -34,7 +41,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // データベースクエリを並列実行してパフォーマンスを向上
     const [
       { data: subscription, error: subError },
-      { data: profile, error: profileError }
+      { data: profile, error: profileError },
+      serviceTrials,
     ] = await Promise.all([
       supabaseAdmin
         .from("subscriptions")
@@ -45,7 +53,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         .from("profiles")
         .select("*")
         .eq("id", user.id)
-        .maybeSingle()
+        .maybeSingle(),
+      fetchServiceTrialsForUser(supabaseAdmin, user.id),
     ]);
 
     // エラーログ
@@ -59,6 +68,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // 期限切れチェック
     // trialing 期限切れ、または cancel_at_period_end の期間終了で canceled に更新
     let updatedSubscription = subscription;
+    let updatedServiceTrials = serviceTrials;
     if (subscription) {
       const now = new Date();
       const wasExpired = await expireSubscriptionIfNeeded(
@@ -76,6 +86,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         updatedSubscription = refreshed;
       }
     }
+    updatedServiceTrials = await expireServiceTrialsForUserIfNeeded(
+      supabaseAdmin,
+      user.id,
+      updatedServiceTrials,
+      new Date(),
+    );
 
     // アカデミア会員（無料付与）判定
     // DBに有効なサブスクリプションがない、かつ大学ドメインの場合に付与
@@ -128,10 +144,35 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const groups = await getUserGroups(user.id);
     const planScope =
       inheritedTeamMemberScope ?? (await fetchPlanScope(finalSubscription?.plan_id));
-    const entitlements = resolveEntitlements({
+    const requestedServiceScope = resolveServiceScopeFromRequest(req);
+    let entitlements = resolveEntitlements({
       subscription: finalSubscription,
       planScope,
+      serviceTrials: updatedServiceTrials,
     });
+
+    if (
+      requestedServiceScope &&
+      !entitlements.accessibleScopes.includes(requestedServiceScope) &&
+      hasEligibleServiceTrial(updatedServiceTrials[requestedServiceScope])
+    ) {
+      const startedTrial = await startEligibleServiceTrial(
+        supabaseAdmin,
+        user.id,
+        requestedServiceScope,
+      );
+      if (startedTrial) {
+        updatedServiceTrials = {
+          ...updatedServiceTrials,
+          [requestedServiceScope]: startedTrial,
+        };
+        entitlements = resolveEntitlements({
+          subscription: finalSubscription,
+          planScope,
+          serviceTrials: updatedServiceTrials,
+        });
+      }
+    }
 
     return res.status(200).json({
       user: { id: user.id, email: user.email },
@@ -144,6 +185,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         : null,
       groups,
       accessible_scopes: entitlements.accessibleScopes,
+      service_trials: {
+        viz: updatedServiceTrials.viz
+          ? {
+              status: updatedServiceTrials.viz.status,
+              current_period_end: updatedServiceTrials.viz.current_period_end ?? null,
+            }
+          : null,
+        prep: updatedServiceTrials.prep
+          ? {
+              status: updatedServiceTrials.prep.status,
+              current_period_end: updatedServiceTrials.prep.current_period_end ?? null,
+            }
+          : null,
+      },
     });
   } catch (err: any) {
     logger.error("me handler error", err);

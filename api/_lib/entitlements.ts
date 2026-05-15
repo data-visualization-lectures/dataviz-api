@@ -1,9 +1,11 @@
 import type {
   AccessibleScope,
   ServiceScope,
+  ServiceTrialMap,
   SubscriptionRecord,
   SubscriptionStatus,
 } from "./types.js";
+import { getActiveServiceTrialScopes } from "./service-trials.js";
 
 export interface ResolvedEntitlements {
   isSubscribed: boolean;
@@ -35,19 +37,31 @@ export function resolveSubscriptionScope(params: {
 export function resolveAccessibleScopes(params: {
   subscription: Pick<SubscriptionRecord, "status"> | null | undefined;
   planScope?: ServiceScope | null;
+  serviceTrials?: ServiceTrialMap | null;
+  now?: Date;
 }): AccessibleScope[] {
-  if (!isSubscribedStatus(params.subscription?.status)) {
-    return [];
+  const resolved = new Set<AccessibleScope>();
+
+  if (isSubscribedStatus(params.subscription?.status)) {
+    if (params.planScope === "viz") {
+      resolved.add("viz");
+    } else if (params.planScope === "prep") {
+      resolved.add("prep");
+    } else {
+      for (const scope of SHARED_ACCESSIBLE_SCOPES) {
+        resolved.add(scope);
+      }
+    }
   }
 
-  if (params.planScope === "viz") {
-    return ["viz"];
-  }
-  if (params.planScope === "prep") {
-    return ["prep"];
+  for (const scope of getActiveServiceTrialScopes(
+    params.serviceTrials,
+    params.now,
+  )) {
+    resolved.add(scope);
   }
 
-  return [...SHARED_ACCESSIBLE_SCOPES];
+  return [...resolved];
 }
 
 export function hasAccessibleScope(params: {
@@ -102,13 +116,22 @@ export function combineServiceScopes(
 export function resolveEntitlements(params: {
   subscription: Pick<SubscriptionRecord, "plan_id" | "status"> | null | undefined;
   planScope?: ServiceScope | null;
+  serviceTrials?: ServiceTrialMap | null;
+  now?: Date;
 }): ResolvedEntitlements {
-  const { subscription, planScope = null } = params;
-  const isSubscribed = isSubscribedStatus(subscription?.status);
+  const { subscription, planScope = null, serviceTrials = null, now } = params;
+  const accessibleScopes = resolveAccessibleScopes({
+    subscription,
+    planScope,
+    serviceTrials,
+    now,
+  });
+  const isSubscribed =
+    isSubscribedStatus(subscription?.status) || accessibleScopes.length > 0;
 
   return {
     isSubscribed,
     subscriptionScope: resolveSubscriptionScope({ subscription, planScope }),
-    accessibleScopes: resolveAccessibleScopes({ subscription, planScope }),
+    accessibleScopes,
   };
 }

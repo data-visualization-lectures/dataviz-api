@@ -138,6 +138,7 @@ export async function fetchPlanRecordByPriceId(
 
 export async function fetchPlanScope(
   planId: string | null | undefined,
+  client: SupabaseClient = supabaseAdmin,
 ): Promise<ServiceScope | null> {
-  return (await fetchPlanRecord(planId))?.scope ?? null;
+  return (await fetchPlanRecord(planId, client))?.scope ?? null;
 }

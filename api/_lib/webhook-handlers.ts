@@ -11,6 +11,36 @@ import {
     getUserIdFromCustomer,
     upsertSubscription,
 } from "./webhook-helpers.js";
+import { fetchPlanScope } from "./plans.js";
+import { consumeServiceTrialsForPaidScope } from "./service-trials.js";
+
+async function consumeCoveredServiceTrials(params: {
+    userId: string;
+    planId: string | undefined;
+    status: string | null | undefined;
+    supabaseAdmin: SupabaseClient;
+}): Promise<void> {
+    if (params.status !== "active" && params.status !== "trialing") {
+        return;
+    }
+    if (!params.planId) {
+        return;
+    }
+
+    const planScope = await fetchPlanScope(params.planId, params.supabaseAdmin);
+    const consumedScopes = await consumeServiceTrialsForPaidScope(params.supabaseAdmin, {
+        userId: params.userId,
+        scope: planScope,
+    });
+
+    if (consumedScopes.length > 0) {
+        logger.info("Consumed service trials for paid subscription", {
+            userId: params.userId,
+            planId: params.planId,
+            consumedScopes,
+        });
+    }
+}
 
 /**
  * checkout.session.completed イベントハンドラー
@@ -67,6 +97,12 @@ export async function handleCheckoutCompleted(
             currentPeriodEnd,
             cancelAtPeriodEnd,
             planId,
+        });
+        await consumeCoveredServiceTrials({
+            userId,
+            planId,
+            status,
+            supabaseAdmin,
         });
     } catch (error) {
         logger.error("checkout.session.completed upsert error:", error);
@@ -165,6 +201,12 @@ export async function handleSubscriptionUpdated(
         cancelAtPeriodEnd,
         planId,
     });
+    await consumeCoveredServiceTrials({
+        userId,
+        planId,
+        status,
+        supabaseAdmin,
+    });
 }
 
 /**
@@ -262,6 +304,12 @@ export async function handleInvoicePaymentSucceeded(
         currentPeriodEnd,
         cancelAtPeriodEnd,
         planId,
+    });
+    await consumeCoveredServiceTrials({
+        userId,
+        planId,
+        status,
+        supabaseAdmin,
     });
 }
 
