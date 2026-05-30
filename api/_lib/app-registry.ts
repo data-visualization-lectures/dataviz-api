@@ -89,6 +89,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "projects",
   },
   {
+    appName: "race-chart-builder",
+    scope: "viz",
+    toolUrl: "https://race-chart-builder.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/race-chart-builder/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: true,
+    projectBackend: "projects",
+  },
+  {
     appName: "sankeymatic",
     scope: "viz",
     toolUrl: "https://sankeymatic.dataviz.jp",
