@@ -6,6 +6,7 @@ import type {
   SubscriptionStatus,
 } from "./types.js";
 import { getActiveServiceTrialScopes } from "./service-trials.js";
+import { hasActiveSubscriptionAccess } from "./past-due-grace.js";
 
 export interface ResolvedEntitlements {
   isSubscribed: boolean;
@@ -35,14 +36,17 @@ export function resolveSubscriptionScope(params: {
 }
 
 export function resolveAccessibleScopes(params: {
-  subscription: Pick<SubscriptionRecord, "status"> | null | undefined;
+  subscription:
+    | Pick<SubscriptionRecord, "status" | "past_due_grace_until">
+    | null
+    | undefined;
   planScope?: ServiceScope | null;
   serviceTrials?: ServiceTrialMap | null;
   now?: Date;
 }): AccessibleScope[] {
   const resolved = new Set<AccessibleScope>();
 
-  if (isSubscribedStatus(params.subscription?.status)) {
+  if (hasActiveSubscriptionAccess(params.subscription, params.now)) {
     if (params.planScope === "viz") {
       resolved.add("viz");
     } else if (params.planScope === "prep") {
@@ -114,7 +118,10 @@ export function combineServiceScopes(
 }
 
 export function resolveEntitlements(params: {
-  subscription: Pick<SubscriptionRecord, "plan_id" | "status"> | null | undefined;
+  subscription:
+    | Pick<SubscriptionRecord, "plan_id" | "status" | "past_due_grace_until">
+    | null
+    | undefined;
   planScope?: ServiceScope | null;
   serviceTrials?: ServiceTrialMap | null;
   now?: Date;
@@ -127,7 +134,7 @@ export function resolveEntitlements(params: {
     now,
   });
   const isSubscribed =
-    isSubscribedStatus(subscription?.status) || accessibleScopes.length > 0;
+    hasActiveSubscriptionAccess(subscription, now) || accessibleScopes.length > 0;
 
   return {
     isSubscribed,
