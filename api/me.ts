@@ -12,9 +12,9 @@ import { fetchPlanScope } from "./_lib/plans.js";
 import {
   expireServiceTrialsForUserIfNeeded,
   fetchServiceTrialsForUser,
-  hasEligibleServiceTrial,
   startEligibleServiceTrial,
 } from "./_lib/service-trials.js";
+import { canStartEligibleServiceTrial } from "./_lib/service-trial-start.js";
 import { resolveServiceScopeFromRequest } from "./_lib/request-app-context.js";
 import type { ServiceScope } from "./_lib/types.js";
 
@@ -153,8 +153,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     if (
       requestedServiceScope &&
-      !entitlements.accessibleScopes.includes(requestedServiceScope) &&
-      hasEligibleServiceTrial(updatedServiceTrials[requestedServiceScope])
+      canStartEligibleServiceTrial({
+        requestedServiceScope,
+        accessibleScopes: entitlements.accessibleScopes,
+        serviceTrial: updatedServiceTrials[requestedServiceScope],
+        hasSubscriptionRecord: !!updatedSubscription,
+      })
     ) {
       const startedTrial = await startEligibleServiceTrial(
         supabaseAdmin,
