@@ -38,6 +38,7 @@ export interface SubscriptionRecord {
   scope?: ServiceScope | null;
   status: SubscriptionStatus;
   current_period_end?: string | null;
+  past_due_grace_until?: string | null;
   cancel_at_period_end?: boolean | null;
   created_at?: string;
   updated_at?: string;

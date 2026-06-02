@@ -64,6 +64,28 @@ test("accessible scopes stay shared while compatibility mode is active", () => {
   );
   assert.deepEqual(
     resolveAccessibleScopes({
+      subscription: {
+        status: "past_due",
+        past_due_grace_until: "2026-06-08T00:00:00.000Z",
+      },
+      planScope: "viz",
+      now: new Date("2026-06-02T00:00:00.000Z"),
+    }),
+    ["viz"],
+  );
+  assert.deepEqual(
+    resolveAccessibleScopes({
+      subscription: {
+        status: "past_due",
+        past_due_grace_until: "2026-06-01T00:00:00.000Z",
+      },
+      planScope: "viz",
+      now: new Date("2026-06-02T00:00:00.000Z"),
+    }),
+    [],
+  );
+  assert.deepEqual(
+    resolveAccessibleScopes({
       subscription: { status: "none" },
       serviceTrials: {
         viz: {

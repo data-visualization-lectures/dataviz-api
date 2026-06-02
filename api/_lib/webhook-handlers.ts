@@ -13,6 +13,7 @@ import {
 } from "./webhook-helpers.js";
 import { fetchPlanScope } from "./plans.js";
 import { consumeServiceTrialsForPaidScope } from "./service-trials.js";
+import { computePastDueGraceUntil } from "./past-due-grace.js";
 
 async function consumeCoveredServiceTrials(params: {
     userId: string;
@@ -200,6 +201,10 @@ export async function handleSubscriptionUpdated(
         currentPeriodEnd,
         cancelAtPeriodEnd,
         planId,
+        pastDueGraceUntil:
+            status === "past_due"
+                ? computePastDueGraceUntil(event.created)
+                : undefined,
     });
     await consumeCoveredServiceTrials({
         userId,
@@ -304,6 +309,7 @@ export async function handleInvoicePaymentSucceeded(
         currentPeriodEnd,
         cancelAtPeriodEnd,
         planId,
+        clearPastDueGrace: true,
     });
     await consumeCoveredServiceTrials({
         userId,
@@ -364,5 +370,9 @@ export async function handleInvoicePaymentFailed(
         currentPeriodEnd,
         cancelAtPeriodEnd,
         planId,
+        pastDueGraceUntil:
+            status === "past_due"
+                ? computePastDueGraceUntil(event.created)
+                : undefined,
     });
 }
