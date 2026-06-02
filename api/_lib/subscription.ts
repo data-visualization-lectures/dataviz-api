@@ -9,6 +9,7 @@ import { fetchPlanScope } from "./plans.js";
 import { resolveRequiredScopeFromApp } from "./app-registry.js";
 import { config } from "./config.js";
 import { fetchServiceTrialsForUser } from "./service-trials.js";
+import { hasActiveSubscriptionAccess } from "./past-due-grace.js";
 import type { AccessibleScope, ServiceScope, SubscriptionRecord } from "./types.js";
 
 export interface SubscriptionAccessOptions {
@@ -34,12 +35,11 @@ interface EffectiveSubscriptionResolution {
 async function resolveEffectiveSubscription(
     user: AuthenticatedUser,
 ): Promise<EffectiveSubscriptionResolution> {
-    // 1. Check DB for active/trialing subscription
+    // 1. Check DB for a subscription with currently allowed access.
     const { data: subscription, error } = await supabaseAdmin
         .from("subscriptions")
-        .select("user_id, plan_id, status, current_period_end")
+        .select("user_id, plan_id, status, current_period_end, past_due_grace_until")
         .eq("user_id", user.id)
-        .in("status", ["active", "trialing"])
         .maybeSingle();
 
     let effectiveSubscription: SubscriptionRecord | null = null;
@@ -53,8 +53,9 @@ async function resolveEffectiveSubscription(
             }
             // 期限切れの trialing はアクセス不可 → 以降のチェックへ
         } else {
-            // active
-            effectiveSubscription = subscription as SubscriptionRecord;
+            if (hasActiveSubscriptionAccess(subscription as SubscriptionRecord)) {
+                effectiveSubscription = subscription as SubscriptionRecord;
+            }
         }
     }
 

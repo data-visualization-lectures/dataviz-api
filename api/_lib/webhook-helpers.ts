@@ -6,6 +6,7 @@ import type Stripe from "stripe";
 import type { SubscriptionStatus } from "./types.js";
 import { logger } from "./logger.js";
 import { fetchPlanRecordByPriceId } from "./plans.js";
+import { resolvePastDueGraceUntilForUpsert } from "./past-due-grace.js";
 
 /**
  * Unix エポック秒を ISO 8601 文字列に変換
@@ -105,6 +106,8 @@ export async function upsertSubscription(
         currentPeriodEnd?: string | null;
         cancelAtPeriodEnd?: boolean | null;
         planId?: string | undefined;
+        pastDueGraceUntil?: string | null;
+        clearPastDueGrace?: boolean;
     }
 ): Promise<void> {
     const payload: Record<string, any> = {
@@ -128,6 +131,38 @@ export async function upsertSubscription(
     }
     if (params.planId !== undefined) {
         payload.plan_id = params.planId;
+    }
+    if (params.clearPastDueGrace) {
+        payload.past_due_grace_until = null;
+    } else if (params.status === "past_due" && params.pastDueGraceUntil !== undefined) {
+        const { data: existing, error: existingError } = await supabaseAdmin
+            .from("subscriptions")
+            .select("past_due_grace_until")
+            .eq("user_id", params.userId)
+            .maybeSingle();
+
+        if (existingError) {
+            logger.error("upsertSubscription existing grace lookup failed", existingError as Error, {
+                userId: params.userId,
+            });
+            throw existingError;
+        }
+
+        payload.past_due_grace_until = resolvePastDueGraceUntilForUpsert({
+            status: params.status,
+            existingPastDueGraceUntil:
+                typeof existing?.past_due_grace_until === "string"
+                    ? existing.past_due_grace_until
+                    : null,
+            candidatePastDueGraceUntil: params.pastDueGraceUntil,
+        });
+    } else {
+        const pastDueGraceUntil = resolvePastDueGraceUntilForUpsert({
+            status: params.status,
+        });
+        if (pastDueGraceUntil !== undefined) {
+            payload.past_due_grace_until = pastDueGraceUntil;
+        }
     }
 
     const { error } = await supabaseAdmin
