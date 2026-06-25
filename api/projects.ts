@@ -2,6 +2,7 @@
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { handleCorsAndMethods } from "./_lib/http.js";
+import type { AuthenticatedUser } from "./_lib/supabase.js";
 import { supabaseAdmin } from "./_lib/supabase.js";
 import { requireAuth, requireSubscription } from "./_lib/auth-guards.js";
 import { logger } from "./_lib/logger.js";
@@ -9,12 +10,69 @@ import { config } from "./_lib/config.js";
 import {
     buildProjectJsonPath,
     buildThumbnailPath,
+    createSignedUrlMap,
     uploadProjectJson,
     uploadThumbnail,
     fileExists,
 } from "./_lib/projects-storage.js";
 import { getUserGroupIds, getLeaderGroupIds } from "./_lib/group.js";
 import { resolveAppNameFromRequest } from "./_lib/request-app-context.js";
+import { resolveSubscriptionAccess } from "./_lib/subscription.js";
+
+type ProjectListRow = {
+    thumbnail_path?: string | null;
+    [key: string]: unknown;
+};
+
+const THUMBNAIL_INCLUDE_VALUES = new Set(["1", "true", "yes"]);
+
+function wantsIncludedThumbnails(value: string | string[] | undefined): boolean {
+    const raw = Array.isArray(value) ? value[0] : value;
+    return typeof raw === "string" && THUMBNAIL_INCLUDE_VALUES.has(raw.toLowerCase());
+}
+
+async function attachThumbnailUrls(
+    projects: ProjectListRow[],
+    includeThumbnails: boolean,
+    user: AuthenticatedUser,
+    appName: string | null | undefined,
+): Promise<ProjectListRow[]> {
+    if (!includeThumbnails) {
+        return projects;
+    }
+
+    if (projects.length === 0) {
+        return projects;
+    }
+
+    let hasThumbnailSubscription = false;
+    try {
+        const access = await resolveSubscriptionAccess(user, { appName });
+        hasThumbnailSubscription = access.hasSubscription;
+    } catch (error) {
+        logger.warn("Failed to resolve thumbnail access", { userId: user.id, error });
+        return projects.map((project) => ({ ...project, thumbnail_url: null }));
+    }
+
+    if (!hasThumbnailSubscription) {
+        return projects.map((project) => ({ ...project, thumbnail_url: null }));
+    }
+
+    const { urls, error } = await createSignedUrlMap(
+        projects
+            .map((project) => project.thumbnail_path)
+            .filter((path): path is string => typeof path === "string" && path.length > 0)
+    );
+
+    if (error) {
+        logger.warn("Failed to create signed thumbnail URLs", { userId: user.id, error });
+    }
+
+    return projects.map((project) => ({
+        ...project,
+        thumbnail_url: project.thumbnail_path ? urls.get(project.thumbnail_path) ?? null : null,
+    }));
+}
 
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
@@ -44,6 +102,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             const mode = req.query.mode as string | undefined;
             const source = req.query.source as string | undefined;
             const appName = req.query.app as string | undefined;
+            const includeThumbnails = wantsIncludedThumbnails(
+                req.query.include_thumbnails as string | string[] | undefined
+            );
+            const thumbnailAccessAppName = requestAppName || appName || null;
 
             // mode=count: 自分のプロジェクト件数（app フィルタ任意）
             if (mode === "count") {
@@ -88,7 +150,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     throw error;
                 }
 
-                return res.status(200).json({ projects: projects ?? [] });
+                return res.status(200).json({
+                    projects: await attachThumbnailUrls(
+                        projects ?? [],
+                        includeThumbnails,
+                        user,
+                        thumbnailAccessAppName
+                    ),
+                });
             }
 
             // source=group: グループプロジェクト一覧
@@ -115,7 +184,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                     throw error;
                 }
 
-                return res.status(200).json({ projects: projects ?? [] });
+                return res.status(200).json({
+                    projects: await attachThumbnailUrls(
+                        projects ?? [],
+                        includeThumbnails,
+                        user,
+                        thumbnailAccessAppName
+                    ),
+                });
             }
 
             // 自分のプロジェクト一覧（app 未指定時は全 app を返す）
@@ -135,7 +211,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 throw error;
             }
 
-            return res.status(200).json({ projects: projects ?? [] });
+            return res.status(200).json({
+                projects: await attachThumbnailUrls(
+                    projects ?? [],
+                    includeThumbnails,
+                    user,
+                    thumbnailAccessAppName
+                ),
+            });
         }
 
         // POST: プロジェクト新規保存

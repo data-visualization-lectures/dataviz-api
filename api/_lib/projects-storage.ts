@@ -85,6 +85,40 @@ export async function createSignedUploadUrl(
   return { signedUrl: data.signedUrl, error: null };
 }
 
+export async function createSignedUrlMap(
+  storagePaths: string[],
+  expiresInSeconds = 3600
+): Promise<{ urls: Map<string, string>; error: unknown | null }> {
+  const urls = new Map<string, string>();
+  const uniquePaths = Array.from(
+    new Set(
+      storagePaths.filter(
+        (path): path is string => typeof path === "string" && path.length > 0
+      )
+    )
+  );
+
+  if (uniquePaths.length === 0) {
+    return { urls, error: null };
+  }
+
+  const { data, error } = await supabaseAdmin.storage
+    .from(STORAGE_BUCKET)
+    .createSignedUrls(uniquePaths, expiresInSeconds);
+
+  if (error) {
+    return { urls, error };
+  }
+
+  for (const item of data ?? []) {
+    if (item.path && item.signedUrl) {
+      urls.set(item.path, item.signedUrl);
+    }
+  }
+
+  return { urls, error: null };
+}
+
 export async function fileExists(storagePath: string): Promise<boolean> {
   // ファイルのディレクトリ内を list して存在確認（download より軽量）
   const dir = storagePath.substring(0, storagePath.lastIndexOf("/"));
