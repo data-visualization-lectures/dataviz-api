@@ -17,6 +17,11 @@ import { getUserGroupIds } from "../_lib/group.js";
 import { resolveAppNameFromRequest } from "../_lib/request-app-context.js";
 import { resolveScopedAppName } from "../_lib/scope-enforcement.js";
 
+function wantsMetaEnvelope(value: string | string[] | undefined): boolean {
+    const raw = Array.isArray(value) ? value[0] : value;
+    return ["1", "true", "yes"].includes(String(raw || "").toLowerCase());
+}
+
 // ================== ハンドラ本体 ==================
 export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (handleCorsAndMethods(req, res, ["GET", "PUT", "DELETE"])) {
@@ -74,6 +79,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             if (parseError) {
                 logger.error("Invalid file format in storage", downloadError as Error, { userId: user.id, storagePath: project.storage_path });
                 return res.status(500).json({ error: "invalid_file_format" });
+            }
+
+            if (wantsMetaEnvelope(req.query.include_meta)) {
+                const canUpdate = project.user_id === user.id
+                    && !project.group_id
+                    && (!publicUserId || project.user_id !== publicUserId);
+
+                return res.status(200).json({
+                    data,
+                    project,
+                    permissions: {
+                        can_update: canUpdate,
+                    },
+                });
             }
 
             return res.status(200).json(data);
