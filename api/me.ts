@@ -8,6 +8,7 @@ import { logger } from "./_lib/logger.js";
 import { expireSubscriptionIfNeeded } from "./_lib/subscription-expiry.js";
 import { getUserGroups, getActiveGroupSubscription } from "./_lib/group.js";
 import { resolveEntitlements } from "./_lib/entitlements.js";
+import { applyAcademiaSubscriptionOverride } from "./_lib/academia-entitlements.js";
 import { fetchPlanScope } from "./_lib/plans.js";
 import {
   expireServiceTrialsForUserIfNeeded,
@@ -95,33 +96,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // アカデミア会員（無料付与）判定
     // DBに有効なサブスクリプションがない、かつ大学ドメインの場合に付与
-    let finalSubscription = updatedSubscription;
-    if (
-      (!finalSubscription || (finalSubscription as any).status !== "active") &&
-      user.email &&
-      (await isAcademiaEmail(user.email))
-    ) {
-      if (!finalSubscription) {
-        // 全くレコードがない場合はオブジェクトを捏造
-        finalSubscription = {
-          user_id: user.id,
-          status: "active",
-          plan_id: "academia",
-          current_period_end: null,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        };
-      } else {
-        // レコードはあるが active ではない場合 (canceled/past_due 等)
-        // academia 権限で上書きして active に見せる
-        finalSubscription = {
-          ...finalSubscription,
-          status: "active",
-          plan_id: "academia",
-          current_period_end: null,
-        };
-      }
-    }
+    let finalSubscription = applyAcademiaSubscriptionOverride({
+      subscription: updatedSubscription,
+      userId: user.id,
+      isAcademia: !!user.email && (await isAcademiaEmail(user.email)),
+    });
 
     // グループ所属チェック: ownerのサブスクが有効ならメンバーにもactive権限を付与
     let inheritedTeamMemberScope: ServiceScope | null = null;
