@@ -11,6 +11,12 @@ import {
   handleInvoicePaymentSucceeded,
   handleInvoicePaymentFailed,
 } from "./_lib/webhook-handlers.js";
+import { canUseDevWebhookBodyFallback } from "./_lib/stripe-webhook-security.js";
+import {
+  claimStripeWebhookEvent,
+  markStripeWebhookEventProcessed,
+  releaseStripeWebhookEventClaim,
+} from "./_lib/webhook-idempotency.js";
 
 // ---- raw body を読むヘルパー ----
 // vercel dev はストリームを先に消費するため req.body にフォールバック
@@ -68,7 +74,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   } catch (err: any) {
     // vercel dev はストリームを再シリアライズするため署名検証が失敗する。
     // ローカル開発時は req.body から直接イベントを構築する。
-    if (process.env.USE_ENV_FILE && req.body && typeof req.body === "object") {
+    if (canUseDevWebhookBodyFallback(req.body)) {
       logger.info("[Webhook] Skipping signature verification (vercel dev)");
       event = req.body as Stripe.Event;
     } else {
@@ -76,7 +82,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
+  let claimedEvent = false;
+  let handledEvent = false;
   try {
+    claimedEvent = await claimStripeWebhookEvent(supabaseAdmin, event);
+    if (!claimedEvent) {
+      return res.status(200).send("duplicate");
+    }
+
     switch (event.type) {
       case "checkout.session.completed":
         await handleCheckoutCompleted(event, stripe, supabaseAdmin);
@@ -102,8 +115,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         logger.info("Unhandled Stripe event type", { eventType: event.type });
     }
 
+    handledEvent = true;
+    await markStripeWebhookEventProcessed(supabaseAdmin, event.id);
     return res.status(200).send("ok");
   } catch (err: any) {
+    if (claimedEvent && !handledEvent) {
+      await releaseStripeWebhookEventClaim(supabaseAdmin, event.id);
+    }
     logger.error("stripe-webhook handler error:", err);
     return res.status(500).send("internal_webhook_error");
   }
