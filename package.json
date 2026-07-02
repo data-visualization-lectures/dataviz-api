@@ -6,6 +6,7 @@
     "dev:test": "USE_ENV_FILE=.env.test vercel dev --listen 3001",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "npm run typecheck",
+    "test": "node --import tsx --test api/_lib/*.test.ts",
     "stripe:register-phase4:dry-run": "node --experimental-strip-types ./scripts/register-phase4-stripe-catalog.ts",
     "stripe:register-phase4": "node --experimental-strip-types ./scripts/register-phase4-stripe-catalog.ts --apply"
   },
@@ -19,6 +20,7 @@
     "@types/node": "^25.6.0",
     "@vercel/node": "^5.7.13",
     "dotenv-cli": "^11.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   }
 }
