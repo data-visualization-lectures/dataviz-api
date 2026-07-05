@@ -13,12 +13,19 @@ Supabase の `academia_domains` テーブルで管理されている大学ドメ
 
 
 ## 環境変数
+
+必須（`api/_lib/config.ts` で検証）:
 - `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY` (サービスロールで subscriptions/profiles を読み書き)
 - `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` (Stripe Webhook 検証とAPI呼び出し)
-- `STRIPE_PRO_MONTHLY_PRICE_ID` (Checkoutで使う価格ID)
+
+任意:
 - `FRONTEND_BASE_URL` (省略時 `https://app.dataviz.jp`)
+- `TRIAL_INVITE_CODE` (トライアル招待コード)
+- `PUBLIC_PROJECT_USER_ID` (パブリックプロジェクトの所有ユーザーID)
 - `SUBSCRIPTION_SCOPE_ENFORCEMENT` (Phase 3B の書き込み系 scope enforcement。production は有効化作業まで `false`)
-- `CRON_SECRET` (任意。設定時は Cron エンドポイントに Bearer で送信)
+- `CRON_SECRET` (設定時は Cron エンドポイントに Bearer で送信。`api/cron-expire-subscriptions.ts` が直接参照)
+
+Checkout の価格は環境変数ではなく `plans` テーブルの `stripe_price_id` を `api/_lib/plans.ts` / `api/_lib/plan-catalog.ts` で解決する。
 
 Phase 6 前の `team_member` scope 継承、Phase 3B flag 有効化、旧契約表示方針は [docs/pre-phase6-access-policy.md](docs/pre-phase6-access-policy.md) を参照。
 
