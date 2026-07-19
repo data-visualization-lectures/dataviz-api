@@ -36,6 +36,8 @@ Phase 6 前の `team_member` scope 継承、Phase 3B flag 有効化、旧契約�
 - `subscriptions(id, user_id UNIQUE, stripe_customer_id, stripe_subscription_id, plan_id, status, current_period_end, created_at, updated_at)`
 - `academia_domains(id, domain UNIQUE, university_name, is_active, created_at, updated_at)`
 
+Cartogram / Choropleth のbuilder単位 `app_name` へのデータ移行手順は [docs/geo-map-project-app-name-migration.md](docs/geo-map-project-app-name-migration.md) を参照。
+
 ## エンドポイント
 - `GET /api/me`  
   - 認証: `Authorization: Bearer <access_token>` (Supabaseセッション)  
