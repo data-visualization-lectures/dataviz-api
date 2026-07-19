@@ -6,7 +6,9 @@
     "dev:test": "USE_ENV_FILE=.env.test vercel dev --listen 3001",
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "lint": "npm run typecheck",
-    "test": "node --import tsx --test api/_lib/*.test.ts",
+    "test": "node --import tsx --test api/_lib/*.test.ts scripts/*.test.ts",
+    "migrate:geo-map-projects:dry-run": "node --experimental-strip-types scripts/migrate-geo-map-project-app-names.ts --json",
+    "migrate:geo-map-projects": "node --experimental-strip-types scripts/migrate-geo-map-project-app-names.ts --apply",
     "stripe:register-phase4:dry-run": "node --experimental-strip-types ./scripts/register-phase4-stripe-catalog.ts",
     "stripe:register-phase4": "node --experimental-strip-types ./scripts/register-phase4-stripe-catalog.ts --apply"
   },
