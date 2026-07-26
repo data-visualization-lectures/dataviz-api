@@ -15,7 +15,11 @@ import {
   fetchServiceTrialsForUser,
   startEligibleServiceTrial,
 } from "./_lib/service-trials.js";
-import { canStartEligibleServiceTrial } from "./_lib/service-trial-start.js";
+import {
+  canStartEligibleServiceTrial,
+  createServiceTrialStartedSignal,
+  type ServiceTrialStartedSignal,
+} from "./_lib/service-trial-start.js";
 import { resolveServiceScopeFromRequest } from "./_lib/request-app-context.js";
 import type { ServiceScope } from "./_lib/types.js";
 
@@ -124,6 +128,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const planScope =
       inheritedTeamMemberScope ?? (await fetchPlanScope(finalSubscription?.plan_id));
     const requestedServiceScope = resolveServiceScopeFromRequest(req);
+    let trialStarted: ServiceTrialStartedSignal | null = null;
     let entitlements = resolveEntitlements({
       subscription: finalSubscription,
       planScope,
@@ -145,6 +150,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         requestedServiceScope,
       );
       if (startedTrial) {
+        trialStarted = createServiceTrialStartedSignal(startedTrial);
         updatedServiceTrials = {
           ...updatedServiceTrials,
           [requestedServiceScope]: startedTrial,
@@ -182,6 +188,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             }
           : null,
       },
+      trial_started: trialStarted,
     });
   } catch (err: any) {
     logger.error("me handler error", err);
