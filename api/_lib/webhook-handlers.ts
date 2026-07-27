@@ -14,6 +14,49 @@ import {
 import { fetchPlanScope } from "./plans.js";
 import { consumeServiceTrialsForPaidScope } from "./service-trials.js";
 import { computePastDueGraceUntil } from "./past-due-grace.js";
+import { sendGa4Event } from "./ga4-measurement.js";
+import { resolveSubscriptionCanceledAnalytics } from "./subscription-canceled-analytics.js";
+
+async function trackSubscriptionCanceled(params: {
+    event: Stripe.Event;
+    subscription: Stripe.Subscription;
+    previousCancelAtPeriodEnd?: boolean;
+    resolvedPlanId?: string;
+}): Promise<void> {
+    if (
+        params.event.type !== "customer.subscription.updated" &&
+        params.event.type !== "customer.subscription.deleted"
+    ) {
+        return;
+    }
+
+    const analytics = resolveSubscriptionCanceledAnalytics({
+        eventType: params.event.type,
+        eventCreated: params.event.created,
+        subscription: params.subscription,
+        previousCancelAtPeriodEnd: params.previousCancelAtPeriodEnd,
+        resolvedPlanId: params.resolvedPlanId,
+    });
+
+    if (!analytics) {
+        return;
+    }
+
+    const sent = await sendGa4Event({
+        clientSeed: analytics.clientSeed,
+        name: "subscription_canceled",
+        timestampMicros: analytics.timestampMicros,
+        params: analytics.params,
+    });
+
+    if (sent) {
+        logger.info("Tracked subscription_canceled in GA4", {
+            stripeEventId: params.event.id,
+            subscriptionId: params.subscription.id,
+            ...analytics.params,
+        });
+    }
+}
 
 async function consumeCoveredServiceTrials(params: {
     userId: string;
@@ -212,6 +255,15 @@ export async function handleSubscriptionUpdated(
         status,
         supabaseAdmin,
     });
+
+    const previousSubscription =
+        event.data.previous_attributes as Partial<Stripe.Subscription> | undefined;
+    await trackSubscriptionCanceled({
+        event,
+        subscription,
+        previousCancelAtPeriodEnd: previousSubscription?.cancel_at_period_end,
+        resolvedPlanId: planId,
+    });
 }
 
 /**
@@ -257,6 +309,11 @@ export async function handleSubscriptionDeleted(
         currentPeriodEnd,
         cancelAtPeriodEnd,
         planId,
+    });
+    await trackSubscriptionCanceled({
+        event,
+        subscription,
+        resolvedPlanId: planId,
     });
 }
 

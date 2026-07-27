@@ -113,7 +113,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
           quantity: 1
         }
       ],
-      success_url: buildFrontendUrl(req, config.frontend.baseUrl, "/billing/success"),
+      success_url: buildFrontendUrl(
+        req,
+        config.frontend.baseUrl,
+        "/billing/success?session_id={CHECKOUT_SESSION_ID}",
+      ),
       cancel_url: buildFrontendUrl(req, config.frontend.baseUrl, "/billing/cancel"),
       subscription_data: {
         metadata: {
