@@ -389,17 +389,6 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "none",
   },
   {
-    appName: "what-the-tile",
-    scope: "prep",
-    toolUrl: "https://what-the-tile.dataprep.jp",
-    canonicalHost: "what-the-tile.dataprep.jp",
-    legacyHosts: ["what-the-tile.dataviz.jp"],
-    marketingUrl: "https://www.dataviz.jp/what-the-tile/",
-    hubHost: "app.dataprep.jp",
-    supportsSavedProjects: false,
-    projectBackend: "none",
-  },
-  {
     appName: "calendar-converter",
     scope: "prep",
     toolUrl: "https://calendar-converter.dataprep.jp",

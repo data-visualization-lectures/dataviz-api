@@ -32,3 +32,9 @@ test("map scope is not encoded in app names", () => {
     assert.equal(resolveProjectBackendFromApp(appName), null);
   }
 });
+
+test("retired What the Tile is not resolved as a subscription tool", () => {
+  assert.equal(getAppRegistryEntry("what-the-tile"), null);
+  assert.equal(resolveRequiredScopeFromApp("what-the-tile"), null);
+  assert.equal(resolveProjectBackendFromApp("what-the-tile"), null);
+});
