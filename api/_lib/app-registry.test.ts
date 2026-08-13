@@ -38,3 +38,12 @@ test("retired What the Tile is not resolved as a subscription tool", () => {
   assert.equal(resolveRequiredScopeFromApp("what-the-tile"), null);
   assert.equal(resolveProjectBackendFromApp("what-the-tile"), null);
 });
+
+test("parallel-sets resolves as a viz saved-project tool", () => {
+  assert.equal(resolveRequiredScopeFromApp("parallel-sets"), "viz");
+  assert.equal(resolveProjectBackendFromApp("parallel-sets"), "projects");
+  assert.equal(
+    getAppRegistryEntry("parallel-sets")?.toolUrl,
+    "https://parallel-sets.dataviz.jp",
+  );
+});
