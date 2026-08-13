@@ -170,6 +170,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "projects",
   },
   {
+    appName: "parallels-thematic-maps",
+    scope: "viz",
+    toolUrl: "https://parallels-thematic-maps.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/parallels-thematic-maps/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: true,
+    projectBackend: "projects",
+  },
+  {
     appName: "drawing-line-chart",
     scope: "viz",
     toolUrl: "https://drawing-line-chart.dataviz.jp",
