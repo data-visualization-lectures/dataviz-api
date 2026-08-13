@@ -47,3 +47,12 @@ test("parallel-sets resolves as a viz saved-project tool", () => {
     "https://parallel-sets.dataviz.jp",
   );
 });
+
+test("parallels-thematic-maps resolves as a viz saved-project tool", () => {
+  assert.equal(resolveRequiredScopeFromApp("parallels-thematic-maps"), "viz");
+  assert.equal(resolveProjectBackendFromApp("parallels-thematic-maps"), "projects");
+  assert.equal(
+    getAppRegistryEntry("parallels-thematic-maps")?.toolUrl,
+    "https://parallels-thematic-maps.dataviz.jp",
+  );
+});
