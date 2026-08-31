@@ -28,6 +28,7 @@ test("setCors allows dataviz and dataprep service origins", () => {
     "https://rawgraphs.dataviz.jp",
     "https://app.dataprep.jp",
     "https://open-refine.dataprep.jp",
+    "https://tools.data-viz-lectures.com",
   ]) {
     const res = createMockResponse();
     setCors({ headers: { origin }, method: "GET" } as never, res as never);
@@ -47,6 +48,13 @@ test("setCors does not allow unrelated origins", () => {
     res as never,
   );
   assert.equal(res.headers.get("Access-Control-Allow-Origin"), undefined);
+
+  const idRes = createMockResponse();
+  setCors(
+    { headers: { origin: "https://id.data-viz-lectures.com" }, method: "GET" } as never,
+    idRes as never,
+  );
+  assert.equal(idRes.headers.get("Access-Control-Allow-Origin"), undefined);
 });
 
 test("setCors ends OPTIONS preflight requests", () => {
