@@ -9,9 +9,10 @@ export function setCors(req: VercelRequest, res: VercelResponse) {
   // 許可するドメインの正規表現
   // 1. *.dataviz.jp / dataviz.jp
   // 2. *.dataprep.jp / dataprep.jp
-  // 3. localhost: (開発用)
-  // 4. *-yuichiyazaki.vercel.app (プレビュー環境)
-  const allowedOriginRegex = /^(https:\/\/(.*\.(dataviz|dataprep)\.jp|(dataviz|dataprep)\.jp)(:\d+)?|http:\/\/localhost(:\d+)?|https:\/\/.*-yuichiyazaki\.vercel\.app(:\d+)?)$/;
+  // 3. https://tools.data-viz-lectures.com (公開総合案内)
+  // 4. localhost: (開発用)
+  // 5. *-yuichiyazaki.vercel.app (プレビュー環境)
+  const allowedOriginRegex = /^(https:\/\/(.*\.(dataviz|dataprep)\.jp|(dataviz|dataprep)\.jp)(:\d+)?|https:\/\/tools\.data-viz-lectures\.com|http:\/\/localhost(:\d+)?|https:\/\/.*-yuichiyazaki\.vercel\.app(:\d+)?)$/;
 
   if (origin && allowedOriginRegex.test(origin)) {
     res.setHeader("Access-Control-Allow-Origin", origin);
