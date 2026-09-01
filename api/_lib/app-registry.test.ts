@@ -56,3 +56,14 @@ test("parallels-thematic-maps resolves as a viz saved-project tool", () => {
     "https://parallels-thematic-maps.dataviz.jp",
   );
 });
+
+test("map-projection-chooser resolves as a viz chooser without saved projects", () => {
+  assert.equal(resolveRequiredScopeFromApp("map-projection-chooser"), "viz");
+  assert.equal(resolveProjectBackendFromApp("map-projection-chooser"), "none");
+  assert.equal(getAppRegistryEntry("map-projection-chooser")?.hubHost, "app.dataviz.jp");
+  assert.equal(
+    getAppRegistryEntry("map-projection-chooser")?.toolUrl,
+    "https://map-projection-chooser.dataviz.jp",
+  );
+  assert.equal(getAppRegistryEntry("map-projection-chooser")?.supportsSavedProjects, false);
+});
