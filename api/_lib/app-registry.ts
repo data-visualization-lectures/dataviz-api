@@ -264,6 +264,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "none",
   },
   {
+    appName: "map-projection-chooser",
+    scope: "viz",
+    toolUrl: "https://map-projection-chooser.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/map-projection-chooser/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: false,
+    projectBackend: "none",
+  },
+  {
     appName: "jsoncrack",
     scope: "prep",
     toolUrl: "https://jsoncrack.dataprep.jp",
