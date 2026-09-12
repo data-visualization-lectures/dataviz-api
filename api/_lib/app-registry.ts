@@ -273,6 +273,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "none",
   },
   {
+    appName: "matrix-table-chart",
+    scope: "viz",
+    toolUrl: "https://matrix-table-chart.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/matrix-table-chart/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: true,
+    projectBackend: "projects",
+  },
+  {
     appName: "jsoncrack",
     scope: "prep",
     toolUrl: "https://jsoncrack.dataprep.jp",

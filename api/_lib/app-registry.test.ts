@@ -67,3 +67,14 @@ test("map-projection-chooser resolves as a viz chooser without saved projects", 
   );
   assert.equal(getAppRegistryEntry("map-projection-chooser")?.supportsSavedProjects, false);
 });
+
+test("matrix-table-chart resolves as a viz saved-project tool", () => {
+  assert.equal(resolveRequiredScopeFromApp("matrix-table-chart"), "viz");
+  assert.equal(resolveProjectBackendFromApp("matrix-table-chart"), "projects");
+  assert.equal(getAppRegistryEntry("matrix-table-chart")?.hubHost, "app.dataviz.jp");
+  assert.equal(
+    getAppRegistryEntry("matrix-table-chart")?.toolUrl,
+    "https://matrix-table-chart.dataviz.jp",
+  );
+  assert.equal(getAppRegistryEntry("matrix-table-chart")?.supportsSavedProjects, true);
+});
