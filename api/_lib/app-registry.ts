@@ -215,6 +215,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "projects",
   },
   {
+    appName: "matrix-table-chart",
+    scope: "viz",
+    toolUrl: "https://matrix-table-chart.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/matrix-table-chart/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: true,
+    projectBackend: "projects",
+  },
+  {
     appName: "open-refine",
     scope: "prep",
     toolUrl: "https://open-refine.dataprep.jp",

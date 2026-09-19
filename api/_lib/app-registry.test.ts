@@ -57,6 +57,19 @@ test("parallels-thematic-maps resolves as a viz saved-project tool", () => {
   );
 });
 
+test("matrix-table-chart resolves as a viz saved-project tool", () => {
+  assert.equal(resolveRequiredScopeFromApp("matrix-table-chart"), "viz");
+  assert.equal(resolveProjectBackendFromApp("matrix-table-chart"), "projects");
+  assert.equal(
+    getAppRegistryEntry("matrix-table-chart")?.toolUrl,
+    "https://matrix-table-chart.dataviz.jp",
+  );
+  assert.equal(
+    getAppRegistryEntry("matrix-table-chart")?.marketingUrl,
+    "https://www.dataviz.jp/matrix-table-chart/",
+  );
+});
+
 test("map-projection-chooser resolves as a viz chooser without saved projects", () => {
   assert.equal(resolveRequiredScopeFromApp("map-projection-chooser"), "viz");
   assert.equal(resolveProjectBackendFromApp("map-projection-chooser"), "none");
