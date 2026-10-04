@@ -224,6 +224,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "projects",
   },
   {
+    appName: "weighted-directed-flow-map",
+    scope: "viz",
+    toolUrl: "https://weighted-directed-flow-map.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/weighted-directed-flow-map/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: true,
+    projectBackend: "projects",
+  },
+  {
     appName: "open-refine",
     scope: "prep",
     toolUrl: "https://open-refine.dataprep.jp",

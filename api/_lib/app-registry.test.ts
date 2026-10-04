@@ -70,6 +70,19 @@ test("matrix-table-chart resolves as a viz saved-project tool", () => {
   );
 });
 
+test("weighted-directed-flow-map resolves as a viz saved-project tool", () => {
+  assert.equal(resolveRequiredScopeFromApp("weighted-directed-flow-map"), "viz");
+  assert.equal(resolveProjectBackendFromApp("weighted-directed-flow-map"), "projects");
+  assert.equal(
+    getAppRegistryEntry("weighted-directed-flow-map")?.toolUrl,
+    "https://weighted-directed-flow-map.dataviz.jp",
+  );
+  assert.equal(
+    getAppRegistryEntry("weighted-directed-flow-map")?.marketingUrl,
+    "https://www.dataviz.jp/weighted-directed-flow-map/",
+  );
+});
+
 test("map-projection-chooser resolves as a viz chooser without saved projects", () => {
   assert.equal(resolveRequiredScopeFromApp("map-projection-chooser"), "viz");
   assert.equal(resolveProjectBackendFromApp("map-projection-chooser"), "none");
