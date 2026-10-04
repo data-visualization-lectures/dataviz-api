@@ -233,6 +233,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "projects",
   },
   {
+    appName: "shape-cartogram",
+    scope: "viz",
+    toolUrl: "https://shape-cartogram.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/shape-cartogram/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: true,
+    projectBackend: "projects",
+  },
+  {
     appName: "open-refine",
     scope: "prep",
     toolUrl: "https://open-refine.dataprep.jp",
