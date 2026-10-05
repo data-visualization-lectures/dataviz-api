@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { hasAccessibleScope } from "./entitlements.ts";
 
 import {
   getAppRegistryEntry,
@@ -18,6 +19,27 @@ test("canonical map builders resolve as viz saved-project tools", () => {
     assert.equal(resolveProjectBackendFromApp(appName), "projects");
     assert.equal(getAppRegistryEntry(appName)?.toolUrl, `https://${appName}.dataviz.jp`);
   }
+});
+
+test("tree chart builder resolves as a viz saved-project tool", () => {
+  const entry = getAppRegistryEntry("tree-chart-builder");
+  assert.equal(resolveRequiredScopeFromApp("tree-chart-builder"), "viz");
+  assert.equal(resolveProjectBackendFromApp("tree-chart-builder"), "projects");
+  assert.equal(entry?.toolUrl, "https://tree-chart-builder.dataviz.jp");
+  assert.equal(entry?.marketingUrl, "https://www.dataviz.jp/tree-chart-builder/");
+  assert.equal(entry?.hubHost, "app.dataviz.jp");
+  assert.equal(entry?.supportsSavedProjects, true);
+  const requiredScope = resolveRequiredScopeFromApp("tree-chart-builder");
+  assert.equal(hasAccessibleScope({
+    requiredScope,
+    subscriptionScope: "viz",
+    accessibleScopes: ["viz"],
+  }), true);
+  assert.equal(hasAccessibleScope({
+    requiredScope,
+    subscriptionScope: "prep",
+    accessibleScopes: ["prep"],
+  }), false);
 });
 
 test("map scope is not encoded in app names", () => {
