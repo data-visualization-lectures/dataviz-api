@@ -115,3 +115,13 @@ test("map-projection-chooser resolves as a viz chooser without saved projects", 
   );
   assert.equal(getAppRegistryEntry("map-projection-chooser")?.supportsSavedProjects, false);
 });
+
+
+test("shape-cartogram resolves as a viz saved-project tool on the dataviz hub", () => {
+  assert.equal(resolveRequiredScopeFromApp("shape-cartogram"), "viz");
+  assert.equal(resolveProjectBackendFromApp("shape-cartogram"), "projects");
+  assert.equal(getAppRegistryEntry("shape-cartogram")?.toolUrl, "https://shape-cartogram.dataviz.jp");
+  assert.equal(getAppRegistryEntry("shape-cartogram")?.marketingUrl, "https://www.dataviz.jp/shape-cartogram/");
+  assert.equal(getAppRegistryEntry("shape-cartogram")?.hubHost, "app.dataviz.jp");
+  assert.equal(getAppRegistryEntry("shape-cartogram")?.supportsSavedProjects, true);
+});
