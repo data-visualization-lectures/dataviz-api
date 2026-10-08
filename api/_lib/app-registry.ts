@@ -242,6 +242,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "projects",
   },
   {
+    appName: "upset",
+    scope: "viz",
+    toolUrl: "https://upset.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/upset/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: true,
+    projectBackend: "projects",
+  },
+  {
     appName: "open-refine",
     scope: "prep",
     toolUrl: "https://open-refine.dataprep.jp",
