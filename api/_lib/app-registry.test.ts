@@ -132,7 +132,7 @@ test("tidy-data-checker resolves as a prep tool without saved projects", () => {
   assert.equal(resolveProjectBackendFromApp("tidy-data-checker"), "none");
   assert.equal(entry?.toolUrl, "https://tidy-data-checker.dataprep.jp");
   assert.equal(entry?.canonicalHost, "tidy-data-checker.dataprep.jp");
-  assert.deepEqual(entry?.legacyHosts, ["tidy-data-checker.dataviz.jp"]);
+  assert.equal(entry?.legacyHosts, undefined);
   assert.equal(entry?.marketingUrl, "https://www.dataprep.jp/tidy-data-checker/");
   assert.equal(entry?.hubHost, "app.dataprep.jp");
   assert.equal(entry?.supportsSavedProjects, false);

@@ -478,7 +478,6 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     scope: "prep",
     toolUrl: "https://tidy-data-checker.dataprep.jp",
     canonicalHost: "tidy-data-checker.dataprep.jp",
-    legacyHosts: ["tidy-data-checker.dataviz.jp"],
     marketingUrl: "https://www.dataprep.jp/tidy-data-checker/",
     hubHost: "app.dataprep.jp",
     supportsSavedProjects: false,
