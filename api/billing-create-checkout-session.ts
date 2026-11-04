@@ -10,6 +10,7 @@ import {
 } from "./_lib/plan-catalog.js";
 import { fetchPlanRecord } from "./_lib/plans.js";
 import { buildFrontendUrl } from "./_lib/frontend-url.js";
+import { hasLiveStripeSubscription } from "./_lib/checkout-guard.js";
 
 // ================== Stripe クライアント ==================
 const stripe = createStripeClient();
@@ -38,15 +39,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "subscriptions_select_failed" });
     }
 
-    // 既にアクティブな購読がある場合は Checkout へ進ませない
-    // ただしチームプランへのアップグレードは許可する
     const { plan, currency, plan_id: requestedPlanId } = req.body ?? {};
     const resolvedPlan = resolveCheckoutPlanSelection(requestedPlanId ?? plan, currency);
     if (!resolvedPlan) {
       return res.status(400).json({ error: "invalid_plan" });
     }
 
-    if (sub?.status === "active" && !resolvedPlan.isTeamPlan) {
+    // Stripe 上で有効な契約が残っている間は、チームプランを含めて Checkout を作らない。
+    // 2 本目の subscription ができると二重課金になるため、/account（Billing Portal）へ誘導する。
+    // academia / admin など Stripe 契約のない active 行は、従来どおり個人プランだけを止める。
+    if (
+      hasLiveStripeSubscription(sub) ||
+      (sub?.status === "active" && !resolvedPlan.isTeamPlan)
+    ) {
       return res.status(200).json({
         error: "already_subscribed",
         redirect_url: buildFrontendUrl(req, config.frontend.baseUrl, "/account")
