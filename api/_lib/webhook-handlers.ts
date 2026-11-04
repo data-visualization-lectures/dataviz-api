@@ -10,7 +10,10 @@ import {
     resolvePlanId,
     getUserIdFromCustomer,
     upsertSubscription,
+    fetchTrackedSubscription,
 } from "./webhook-helpers.js";
+import { decideSubscriptionEvent } from "./webhook-subscription-identity.js";
+import type { SubscriptionStatus } from "./types.js";
 import { fetchPlanScope } from "./plans.js";
 import { consumeServiceTrialsForPaidScope } from "./service-trials.js";
 import { computePastDueGraceUntil } from "./past-due-grace.js";
@@ -87,6 +90,47 @@ async function consumeCoveredServiceTrials(params: {
 }
 
 /**
+ * このイベントの Stripe subscription が、ユーザーの subscriptions 行を更新してよいか判定する。
+ * 旧い subscription のイベントが、新しい subscription を追跡している行を上書きしないようにする。
+ */
+async function shouldApplySubscriptionEvent(params: {
+    event: Stripe.Event;
+    supabaseAdmin: SupabaseClient;
+    userId: string;
+    subscriptionId: string;
+    status: SubscriptionStatus;
+}): Promise<boolean> {
+    const tracked = await fetchTrackedSubscription(params.supabaseAdmin, params.userId);
+    const decision = decideSubscriptionEvent({
+        rowSubscriptionId: tracked.stripeSubscriptionId,
+        rowStatus: tracked.status,
+        eventSubscriptionId: params.subscriptionId,
+        eventStatus: params.status,
+    });
+
+    if (decision === "apply") {
+        return true;
+    }
+
+    const metadata = {
+        eventId: params.event.id,
+        eventType: params.event.type,
+        userId: params.userId,
+        eventSubscriptionId: params.subscriptionId,
+        eventStatus: params.status,
+        trackedSubscriptionId: tracked.stripeSubscriptionId,
+        trackedStatus: tracked.status,
+    };
+    if (decision === "ignore_other_live_subscription") {
+        // 同じユーザーに有効な Stripe subscription が 2 本ある。二重課金の可能性があるので運用で確認する。
+        logger.warn("Webhook ignored: user has another live Stripe subscription", metadata);
+    } else {
+        logger.info("Webhook ignored: event is about a subscription the row no longer tracks", metadata);
+    }
+    return false;
+}
+
+/**
  * checkout.session.completed イベントハンドラー
  */
 export async function handleCheckoutCompleted(
@@ -108,52 +152,54 @@ export async function handleCheckoutCompleted(
         return; // Stripe には 200 を返してリトライループを防ぐ
     }
 
-    let status = mapStripeStatus("active");
-    let currentPeriodEnd: string | null | undefined = undefined;
-    let cancelAtPeriodEnd: boolean | null = false;
-    let planId: string | undefined = undefined;
-    let stripeSubscription: Stripe.Subscription | null = null;
-
-    if (subscriptionId) {
-        try {
-            stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
-            status = mapStripeStatus(stripeSubscription.status);
-            currentPeriodEnd = toIso(stripeSubscription.current_period_end) ?? undefined;
-            cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end;
-        } catch (err) {
-            logger.error("checkout.session.completed: retrieve subscription failed", err);
-        }
-    }
-
-    if (stripeSubscription || session?.line_items) {
-        const priceId =
-                stripeSubscription?.items.data[0]?.price?.id ??
-                (session?.line_items as any)?.data?.[0]?.price?.id;
-        planId = await resolvePlanId(supabaseAdmin, priceId);
-    }
-
-    try {
-        await upsertSubscription(supabaseAdmin, {
+    if (!subscriptionId) {
+        logger.warn("checkout.session.completed: session has no subscription", {
             userId,
-            customerId,
-            subscriptionId,
-            status,
-            currentPeriodEnd,
-            cancelAtPeriodEnd,
-            planId,
+            sessionId: session.id,
         });
-        await consumeCoveredServiceTrials({
-            userId,
-            planId,
-            status,
-            supabaseAdmin,
-        });
-    } catch (error) {
-        logger.error("checkout.session.completed upsert error:", error);
+        return;
     }
+
+    // 取得に失敗した場合は throw して Stripe に再送させる
+    const stripeSubscription = await stripe.subscriptions.retrieve(subscriptionId);
+    const status = mapStripeStatus(stripeSubscription.status);
+    const currentPeriodEnd = toIso(stripeSubscription.current_period_end) ?? undefined;
+    const cancelAtPeriodEnd = stripeSubscription.cancel_at_period_end;
+    const planId = await resolvePlanId(
+        supabaseAdmin,
+        stripeSubscription.items.data[0]?.price?.id
+    );
+
+    const shouldApply = await shouldApplySubscriptionEvent({
+        event,
+        supabaseAdmin,
+        userId,
+        subscriptionId,
+        status,
+    });
+    if (!shouldApply) {
+        return;
+    }
+
+    // upsert に失敗した場合は throw してイベントを未処理に戻し、Stripe に再送させる
+    await upsertSubscription(supabaseAdmin, {
+        userId,
+        customerId,
+        subscriptionId,
+        status,
+        currentPeriodEnd,
+        cancelAtPeriodEnd,
+        planId,
+    });
+    await consumeCoveredServiceTrials({
+        userId,
+        planId,
+        status,
+        supabaseAdmin,
+    });
 
     // チームプラン決済時: グループを自動作成
-    if (planId?.startsWith("team_") && subscriptionId) {
+    if (planId?.startsWith("team_")) {
         try {
             // 冪等性チェック: 同じsubscription_idで既にグループが存在すればスキップ
             const { data: existing } = await supabaseAdmin
@@ -217,24 +263,25 @@ export async function handleSubscriptionUpdated(
         return;
     }
 
-    const status = mapStripeStatus(subscription.status);
-    let currentPeriodEnd = toIso(subscription.current_period_end) ?? undefined;
-    const cancelAtPeriodEnd = subscription.cancel_at_period_end;
-    logger.info(
-        `[Webhook] subscription.updated: subId=${subscription.id}, status=${status}, cancelAtPeriodEnd=${cancelAtPeriodEnd}, current_period_end=${subscription.current_period_end}`
-    );
-    // イベントオブジェクトのcurrent_period_endがnullの場合はStripe APIから直接取得
-    if (!currentPeriodEnd) {
-        try {
-            const freshSub = await stripe.subscriptions.retrieve(subscription.id);
-            currentPeriodEnd = toIso(freshSub.current_period_end) ?? undefined;
-            logger.info(`[Webhook] subscription.updated: retrieved fresh current_period_end=${freshSub.current_period_end}`);
-        } catch (err) {
-            logger.error("subscription.updated: retrieve subscription for period_end failed", err as Error);
-        }
-    }
-    const priceId = subscription.items.data[0]?.price?.id;
+    // イベントの到着順は保証されないため、Stripe から最新の状態を取得して反映する。
+    // 取得に失敗した場合は throw して Stripe に再送させる。
+    const freshSubscription = await stripe.subscriptions.retrieve(subscription.id);
+    const status = mapStripeStatus(freshSubscription.status);
+    const currentPeriodEnd = toIso(freshSubscription.current_period_end) ?? undefined;
+    const cancelAtPeriodEnd = freshSubscription.cancel_at_period_end;
+    const priceId = freshSubscription.items.data[0]?.price?.id;
     const planId = await resolvePlanId(supabaseAdmin, priceId);
+
+    const shouldApply = await shouldApplySubscriptionEvent({
+        event,
+        supabaseAdmin,
+        userId,
+        subscriptionId: subscription.id,
+        status,
+    });
+    if (!shouldApply) {
+        return;
+    }
 
     await upsertSubscription(supabaseAdmin, {
         userId,
@@ -301,6 +348,17 @@ export async function handleSubscriptionDeleted(
     const priceId = subscription.items.data[0]?.price?.id;
     const planId = await resolvePlanId(supabaseAdmin, priceId);
 
+    const shouldApply = await shouldApplySubscriptionEvent({
+        event,
+        supabaseAdmin,
+        userId,
+        subscriptionId: subscription.id,
+        status,
+    });
+    if (!shouldApply) {
+        return;
+    }
+
     await upsertSubscription(supabaseAdmin, {
         userId,
         customerId,
@@ -328,15 +386,17 @@ export async function handleInvoicePaymentSucceeded(
     const invoice = event.data.object as Stripe.Invoice;
     const subscriptionId = (invoice.subscription as string | null) ?? null;
     const customerId = (invoice.customer as string | null) ?? null;
-    let subscription: Stripe.Subscription | null = null;
 
-    if (subscriptionId) {
-        try {
-            subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        } catch (err) {
-            logger.error("invoice.payment_succeeded: retrieve subscription failed", err);
-        }
+    if (!subscriptionId) {
+        logger.info("invoice.payment_succeeded: invoice is not for a subscription, skipping", {
+            invoiceId: invoice.id,
+            customerId,
+        });
+        return;
     }
+
+    // 取得に失敗した場合は throw して Stripe に再送させる
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
     const userId = await getUserIdFromCustomer(stripe, customerId, subscription);
     if (!userId) {
@@ -347,16 +407,25 @@ export async function handleInvoicePaymentSucceeded(
         return;
     }
 
-    const status = subscription ? mapStripeStatus(subscription.status) : mapStripeStatus("active");
-    const currentPeriodEnd = subscription
-        ? (toIso(subscription.current_period_end) ?? undefined)
-        : undefined;
-    const cancelAtPeriodEnd = subscription?.cancel_at_period_end ?? false;
+    const status = mapStripeStatus(subscription.status);
+    const currentPeriodEnd = toIso(subscription.current_period_end) ?? undefined;
+    const cancelAtPeriodEnd = subscription.cancel_at_period_end ?? false;
 
     const priceId =
         invoice.lines.data[0]?.price?.id ??
-        subscription?.items.data[0]?.price?.id;
+        subscription.items.data[0]?.price?.id;
     const planId = await resolvePlanId(supabaseAdmin, priceId);
+
+    const shouldApply = await shouldApplySubscriptionEvent({
+        event,
+        supabaseAdmin,
+        userId,
+        subscriptionId,
+        status,
+    });
+    if (!shouldApply) {
+        return;
+    }
 
     await upsertSubscription(supabaseAdmin, {
         userId,
@@ -387,15 +456,17 @@ export async function handleInvoicePaymentFailed(
     const invoice = event.data.object as Stripe.Invoice;
     const subscriptionId = (invoice.subscription as string | null) ?? null;
     const customerId = (invoice.customer as string | null) ?? null;
-    let subscription: Stripe.Subscription | null = null;
 
-    if (subscriptionId) {
-        try {
-            subscription = await stripe.subscriptions.retrieve(subscriptionId);
-        } catch (err) {
-            logger.error("invoice.payment_failed: retrieve subscription failed", err);
-        }
+    if (!subscriptionId) {
+        logger.info("invoice.payment_failed: invoice is not for a subscription, skipping", {
+            invoiceId: invoice.id,
+            customerId,
+        });
+        return;
     }
+
+    // 取得に失敗した場合は throw して Stripe に再送させる
+    const subscription = await stripe.subscriptions.retrieve(subscriptionId);
 
     const userId = await getUserIdFromCustomer(stripe, customerId, subscription);
     if (!userId) {
@@ -406,18 +477,25 @@ export async function handleInvoicePaymentFailed(
         return;
     }
 
-    const status = subscription
-        ? mapStripeStatus(subscription.status ?? "past_due")
-        : mapStripeStatus("past_due");
-    const currentPeriodEnd = subscription
-        ? (toIso(subscription.current_period_end) ?? undefined)
-        : undefined;
-    const cancelAtPeriodEnd = subscription?.cancel_at_period_end ?? false;
+    const status = mapStripeStatus(subscription.status ?? "past_due");
+    const currentPeriodEnd = toIso(subscription.current_period_end) ?? undefined;
+    const cancelAtPeriodEnd = subscription.cancel_at_period_end ?? false;
 
     const priceId =
         invoice.lines.data[0]?.price?.id ??
-        subscription?.items.data[0]?.price?.id;
+        subscription.items.data[0]?.price?.id;
     const planId = await resolvePlanId(supabaseAdmin, priceId);
+
+    const shouldApply = await shouldApplySubscriptionEvent({
+        event,
+        supabaseAdmin,
+        userId,
+        subscriptionId,
+        status,
+    });
+    if (!shouldApply) {
+        return;
+    }
 
     await upsertSubscription(supabaseAdmin, {
         userId,
