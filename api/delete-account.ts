@@ -163,8 +163,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).json({ success: true });
     } catch (err: any) {
         logger.error("Delete account handler error", err as Error);
-        return res
-            .status(500)
-            .json({ error: "internal_error", detail: err?.message ?? String(err) });
+        return res.status(500).json({ error: "internal_error" });
     }
 }

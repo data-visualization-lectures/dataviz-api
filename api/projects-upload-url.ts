@@ -11,6 +11,7 @@ import {
     createSignedUploadUrl,
     MAX_UPLOAD_BYTES,
 } from "./_lib/projects-storage.js";
+import { isUuid } from "./_lib/project-ids.js";
 import { resolveAppNameFromRequest } from "./_lib/request-app-context.js";
 import { resolveScopedAppName } from "./_lib/scope-enforcement.js";
 
@@ -28,6 +29,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
         if (!type || (type !== "data" && type !== "thumbnail")) {
             return res.status(400).json({ error: "missing_or_invalid_type", detail: "type must be 'data' or 'thumbnail'" });
+        }
+
+        if (project_id !== undefined && project_id !== null && !isUuid(project_id)) {
+            return res.status(400).json({ error: "invalid_project_id" });
         }
 
         const hasSubscription = await requireSubscription(req, res, user, {
@@ -92,8 +97,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         });
     } catch (err: any) {
         logger.error("Upload URL handler error", err as Error);
-        return res
-            .status(500)
-            .json({ error: "internal_error", detail: err?.message ?? String(err) });
+        return res.status(500).json({ error: "internal_error" });
     }
 }

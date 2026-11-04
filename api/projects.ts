@@ -15,6 +15,7 @@ import {
     uploadThumbnail,
     fileExists,
 } from "./_lib/projects-storage.js";
+import { isOwnedProjectJsonPath } from "./_lib/project-ids.js";
 import { getUserGroupIds, getLeaderGroupIds } from "./_lib/group.js";
 import { resolveAppNameFromRequest } from "./_lib/request-app-context.js";
 import { resolveSubscriptionAccess } from "./_lib/subscription.js";
@@ -247,6 +248,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
                 if (!project_id || !storage_path) {
                     return res.status(400).json({ error: "missing_required_fields", detail: "storage_uploaded requires project_id and storage_path" });
                 }
+                // storage_path は /api/projects-upload-url が発行したものと完全一致する場合だけ受け付ける
+                if (!isOwnedProjectJsonPath({ userId: user.id, projectId: project_id, storagePath: storage_path })) {
+                    logger.warn("Rejected storage path that was not issued for this user and project", { userId: user.id });
+                    return res.status(400).json({ error: "invalid_storage_path" });
+                }
                 projectUuid = project_id;
                 storagePath = storage_path;
 
@@ -316,8 +322,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: "Method not allowed" });
     } catch (err: any) {
         logger.error("Projects handler error", err as Error);
-        return res
-            .status(500)
-            .json({ error: "internal_error", detail: err?.message ?? String(err) });
+        return res.status(500).json({ error: "internal_error" });
     }
 }
