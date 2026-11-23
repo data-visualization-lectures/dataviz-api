@@ -242,6 +242,15 @@ export const APP_REGISTRY: readonly AppRegistryEntry[] = [
     projectBackend: "projects",
   },
   {
+    appName: "timeline-storyteller",
+    scope: "viz",
+    toolUrl: "https://timeline-storyteller.dataviz.jp",
+    marketingUrl: "https://www.dataviz.jp/timeline-storyteller/",
+    hubHost: "app.dataviz.jp",
+    supportsSavedProjects: true,
+    projectBackend: "projects",
+  },
+  {
     appName: "upset",
     scope: "viz",
     toolUrl: "https://upset.dataviz.jp",
