@@ -136,6 +136,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ url: session.url });
   } catch (err: any) {
     logger.error("Stripe checkout error:", err);
-    return res.status(500).json({ error: err.message ?? "unknown_error" });
+    return res.status(500).json({ error: "checkout_session_failed" });
   }
 }
