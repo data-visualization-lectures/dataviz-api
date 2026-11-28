@@ -11,6 +11,7 @@ import {
     uploadProjectJson,
     uploadThumbnail,
 } from "../_lib/projects-storage.js";
+import { isUuid } from "../_lib/project-ids.js";
 import { requireAuth, requireSubscription } from "../_lib/auth-guards.js";
 import { config } from "../_lib/config.js";
 import { getUserGroupIds } from "../_lib/group.js";
@@ -29,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const { id } = req.query;
-    if (!id || typeof id !== "string") {
+    if (!isUuid(id)) {
         return res.status(400).json({ error: "invalid_id" });
     }
 
@@ -210,8 +211,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(405).json({ error: "Method not allowed" });
     } catch (err: any) {
         logger.error("Projects detail handler error", err as Error, { projectId: id });
-        return res
-            .status(500)
-            .json({ error: "internal_error", detail: err?.message ?? String(err) });
+        return res.status(500).json({ error: "internal_error" });
     }
 }

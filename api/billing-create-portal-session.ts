@@ -84,6 +84,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(200).json({ url: portalSession.url });
   } catch (err: any) {
     logger.error("Stripe portal session error:", err);
-    return res.status(500).json({ error: err.message ?? "unknown_error" });
+    return res.status(500).json({ error: "portal_session_failed" });
   }
 }
