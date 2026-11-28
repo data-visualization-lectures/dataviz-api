@@ -105,6 +105,19 @@ test("weighted-directed-flow-map resolves as a viz saved-project tool", () => {
   );
 });
 
+test("timeline-storyteller resolves as a viz saved-project tool", () => {
+  assert.equal(resolveRequiredScopeFromApp("timeline-storyteller"), "viz");
+  assert.equal(resolveProjectBackendFromApp("timeline-storyteller"), "projects");
+  assert.equal(
+    getAppRegistryEntry("timeline-storyteller")?.toolUrl,
+    "https://timeline-storyteller.dataviz.jp",
+  );
+  assert.equal(
+    getAppRegistryEntry("timeline-storyteller")?.marketingUrl,
+    "https://www.dataviz.jp/timeline-storyteller/",
+  );
+});
+
 test("map-projection-chooser resolves as a viz chooser without saved projects", () => {
   assert.equal(resolveRequiredScopeFromApp("map-projection-chooser"), "viz");
   assert.equal(resolveProjectBackendFromApp("map-projection-chooser"), "none");
