@@ -94,6 +94,33 @@ export async function getUserIdFromCustomer(
 }
 
 /**
+ * ユーザーの subscriptions 行が今どの Stripe subscription を追跡しているかを取得
+ */
+export async function fetchTrackedSubscription(
+    supabaseAdmin: SupabaseClient,
+    userId: string
+): Promise<{ stripeSubscriptionId: string | null; status: SubscriptionStatus | null }> {
+    const { data, error } = await supabaseAdmin
+        .from("subscriptions")
+        .select("stripe_subscription_id, status")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+    if (error) {
+        logger.error("fetchTrackedSubscription failed", error as Error, { userId });
+        throw error;
+    }
+
+    return {
+        stripeSubscriptionId:
+            typeof data?.stripe_subscription_id === "string" && data.stripe_subscription_id
+                ? data.stripe_subscription_id
+                : null,
+        status: (data?.status as SubscriptionStatus | undefined) ?? null,
+    };
+}
+
+/**
  * subscriptions テーブルを upsert
  */
 export async function upsertSubscription(
