@@ -79,6 +79,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(200).send(buffer);
     } catch (err: any) {
         logger.error("thumbnail handler error", err as Error, { projectId: id });
-        return res.status(500).json({ error: "internal_error", detail: err?.message ?? String(err) });
+        return res.status(500).json({ error: "internal_error" });
     }
 }

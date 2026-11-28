@@ -192,8 +192,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     });
   } catch (err: any) {
     logger.error("me handler error", err);
-    return res
-      .status(500)
-      .json({ error: "internal_error", detail: err?.message ?? String(err) });
+    return res.status(500).json({ error: "internal_error" });
   }
 }
